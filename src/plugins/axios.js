@@ -4,14 +4,17 @@ export default {
   install: (app) => {
     // 创建axios实例
     const axiosInstance = axios.create({
-      baseURL: '',
-      timeout: 10000
+      baseURL: '/api',
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json'
+      }
     })
 
     // 请求拦截器
     axiosInstance.interceptors.request.use(
       config => {
-        // 可以在这里添加认证信息等
+        // 可以在这里添加认证令牌等
         return config
       },
       error => {
@@ -22,9 +25,11 @@ export default {
     // 响应拦截器
     axiosInstance.interceptors.response.use(
       response => {
-        return response
+        return response.data
       },
       error => {
+        // 处理错误响应
+        console.error('API请求错误:', error)
         return Promise.reject(error)
       }
     )
