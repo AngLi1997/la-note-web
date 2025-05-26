@@ -3,77 +3,95 @@
 
 <template>
   <div class="about-view">
-    <h1 class="fade-in">关于我的博客</h1>
-    
-    <section class="about-section fade-in" style="animation-delay: 0.1s">
-      <h2>博客介绍</h2>
-      <p>这是一个简洁的个人博客系统，用于分享技术文章和生活感悟。博客使用Vue3和Element Plus构建，采用了简约的设计风格，注重内容的展示和阅读体验。</p>
-    </section>
-    
-    <section class="about-section fade-in" style="animation-delay: 0.2s">
-      <h2>关于作者</h2>
-      <div class="author-info">
-        <div class="avatar-container fade-in" style="animation-delay: 0.3s">
-          <div class="avatar"></div>
-        </div>
-        <div class="bio fade-in" style="animation-delay: 0.4s">
-          <h3>Liang同学</h3>
-          <p>Web开发爱好者，喜欢探索新技术，分享学习心得。同时热爱摄影、旅行，希望通过这个博客记录技术成长和生活点滴。</p>
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <!-- 页面标题 -->
+      <h1 class="page-title fade-in">关于我</h1>
+      
+      <!-- 个人信息区 -->
+      <div class="about-card">
+        <div class="author-info">
+          <div class="avatar-container fade-in" style="animation-delay: 0.2s">
+            <div class="avatar"></div>
+          </div>
+          <div class="bio fade-in" style="animation-delay: 0.3s">
+            <h2 class="section-title">个人简介</h2>
+            <p>Web开发爱好者，喜欢探索新技术，分享学习心得。同时热爱摄影、旅行，希望通过这个博客记录技术成长和生活点滴。</p>
+          </div>
         </div>
       </div>
-    </section>
-    
-    <section class="about-section fade-in" style="animation-delay: 0.5s">
-      <h2>联系方式</h2>
-      <ul class="contact-list">
-        <li class="fade-in" style="animation-delay: 0.6s">
-          <strong>邮箱：</strong>
-          <a href="mailto:example@example.com">example@example.com</a>
-        </li>
-        <li class="fade-in" style="animation-delay: 0.7s">
-          <strong>GitHub：</strong>
-          <a href="https://github.com/example" target="_blank">github.com/example</a>
-        </li>
-      </ul>
-    </section>
+      
+      <!-- 博客介绍 -->
+      <div class="about-card fade-in" style="animation-delay: 0.4s">
+        <h2 class="section-title">博客介绍</h2>
+        <p>这是一个简洁的个人博客系统，用于分享技术文章和生活感悟。博客使用Vue3构建，采用了简约的设计风格，注重内容的展示和阅读体验。</p>
+      </div>
+      
+      <!-- 联系方式 -->
+      <div class="about-card fade-in" style="animation-delay: 0.5s">
+        <h2 class="section-title">联系方式</h2>
+        <ul class="contact-list">
+          <li class="contact-item">
+            <span class="contact-label">邮箱：</span>
+            <a href="mailto:example@example.com" class="contact-link">example@example.com</a>
+          </li>
+          <li class="contact-item">
+            <span class="contact-label">GitHub：</span>
+            <a href="https://github.com/example" target="_blank" class="contact-link">github.com/example</a>
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .about-view {
-  max-width: 800px;
-  margin: 0 auto;
   padding: 20px 0;
 }
 
-h1 {
-  margin-bottom: 30px;
-  font-size: 32px;
+/* 主要内容区域 */
+.main-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.page-title {
+  font-size: 2rem;
   color: #333;
+  margin: 0 0 10px 0;
+  text-align: center;
 }
 
-.about-section {
-  margin-bottom: 40px;
+.about-card {
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-h2 {
-  font-size: 24px;
+.section-title {
+  font-size: 1.3rem;
   margin-bottom: 15px;
-  color: #333;
-  border-bottom: 1px solid #eee;
   padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  color: #333;
 }
 
 p {
   line-height: 1.8;
   color: #444;
+  margin: 0;
 }
 
 .author-info {
   display: flex;
   align-items: center;
   gap: 30px;
-  margin-top: 20px;
 }
 
 .avatar-container {
@@ -95,28 +113,37 @@ p {
   background-size: cover;
 }
 
-.bio h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-  font-size: 20px;
-  color: #333;
+.bio {
+  flex: 1;
 }
 
 .contact-list {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
-.contact-list li {
-  margin-bottom: 10px;
+.contact-item {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
 }
 
-.contact-list a {
+.contact-label {
+  font-weight: 500;
+  color: #555;
+  margin-right: 10px;
+  min-width: 60px;
+}
+
+.contact-link {
   color: #3498db;
   text-decoration: none;
+  transition: all 0.3s ease;
 }
 
-.contact-list a:hover {
+.contact-link:hover {
+  color: #2980b9;
   text-decoration: underline;
 }
 
@@ -134,6 +161,27 @@ p {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 600px) {
+  .author-info {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .avatar-container {
+    margin-bottom: 20px;
+  }
+  
+  .contact-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .contact-label {
+    margin-bottom: 5px;
   }
 }
 </style> 
