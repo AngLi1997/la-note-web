@@ -13,7 +13,9 @@
     <section class="about-section fade-in" style="animation-delay: 0.2s">
       <h2>关于作者</h2>
       <div class="author-info">
-        <div class="avatar fade-in" style="animation-delay: 0.3s"></div>
+        <div class="avatar-container fade-in" style="animation-delay: 0.3s">
+          <div class="avatar"></div>
+        </div>
         <div class="bio fade-in" style="animation-delay: 0.4s">
           <h3>Liang同学</h3>
           <p>Web开发爱好者，喜欢探索新技术，分享学习心得。同时热爱摄影、旅行，希望通过这个博客记录技术成长和生活点滴。</p>
@@ -74,15 +76,23 @@ p {
   margin-top: 20px;
 }
 
-.avatar {
+.avatar-container {
   width: 120px;
   height: 120px;
   border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
   background-color: #eee;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23aaa"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
+  background-image: url('https://picsum.photos/id/64/300/300');
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 60px;
+  background-size: cover;
 }
 
 .bio h3 {

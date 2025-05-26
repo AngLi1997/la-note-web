@@ -11,7 +11,8 @@ const articles = ref([
     summary: 'Vue3带来了许多新特性，如Composition API、Teleport、Fragments等，本文将详细介绍如何利用这些特性构建现代Web应用。',
     date: '2023-05-15',
     category: 'tech',
-    tags: ['Vue', 'JavaScript', 'Web开发']
+    tags: ['Vue', 'JavaScript', 'Web开发'],
+    thumbnail: 'https://picsum.photos/id/11/800/600'
   },
   {
     id: 2,
@@ -19,7 +20,8 @@ const articles = ref([
     summary: '随着技术的不断发展，编程语言也在不断更新迭代。本文将介绍2023年最值得学习的几种编程语言及其应用场景。',
     date: '2023-06-22',
     category: 'tech',
-    tags: ['编程语言', '学习资源']
+    tags: ['编程语言', '学习资源'],
+    thumbnail: 'https://picsum.photos/id/24/800/600'
   },
   {
     id: 3,
@@ -27,7 +29,8 @@ const articles = ref([
     summary: '旅行中如何拍出美丽的照片？本文分享一些实用的摄影技巧，帮助你在旅途中捕捉精彩瞬间。',
     date: '2023-07-10',
     category: 'life',
-    tags: ['摄影', '旅行', '技巧']
+    tags: ['摄影', '旅行', '技巧'],
+    thumbnail: 'https://picsum.photos/id/65/800/600'
   }
 ])
 
