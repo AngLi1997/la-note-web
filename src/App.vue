@@ -5,13 +5,21 @@
   <div class="app-container">
     <header>
       <div class="header-content">
-        <h1 class="logo">liang-note</h1>
-        <nav>
+        <h1 class="logo">NOTE</h1>
+        <nav class="main-nav">
           <router-link to="/">文章</router-link>
           <router-link to="/essay">吐槽</router-link>
           <router-link to="/timeline">时间轴</router-link>
           <router-link to="/about">关于</router-link>
         </nav>
+        <div class="admin-login">
+          <router-link to="/admin/login" title="管理员登录">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="user-icon">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </router-link>
+        </div>
       </div>
     </header>
     
@@ -53,20 +61,25 @@ header {
   margin: 0 auto;
   padding: 0 20px;
   height: 60px;
+  position: relative;
 }
 
 .logo {
   font-size: 1.5rem;
   margin: 0;
   font-weight: 500;
+  width: 100px;
 }
 
-nav {
+.main-nav {
   display: flex;
   gap: 20px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-nav a {
+.main-nav a {
   color: white;
   text-decoration: none;
   font-weight: 500;
@@ -76,15 +89,15 @@ nav a {
   transition: all 0.3s ease;
 }
 
-nav a:hover {
+.main-nav a:hover {
   color: rgba(255, 255, 255, 0.8);
 }
 
-nav a.router-link-active {
+.main-nav a.router-link-active {
   color: white;
 }
 
-nav a.router-link-active::after {
+.main-nav a.router-link-active::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -93,6 +106,35 @@ nav a.router-link-active::after {
   height: 2px;
   background-color: white;
   border-radius: 2px;
+}
+
+.admin-login {
+  margin-left: auto;
+  width: 100px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.admin-login a {
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  transition: all 0.3s ease;
+}
+
+.admin-login a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.user-icon {
+  width: 20px;
+  height: 20px;
 }
 
 main {

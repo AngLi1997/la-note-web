@@ -32,8 +32,34 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue')
+    },
+    {
+      path: '/admin/login',
+      name: 'adminLogin',
+      component: () => import('../views/admin/LoginView.vue')
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'adminDashboard',
+      component: () => import('../views/admin/DashboardView.vue'),
+      meta: { requiresAuth: true }
     }
   ]
+})
+
+// 路由守卫，检查管理员权限
+router.beforeEach((to, from, next) => {
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    // 检查是否有管理员令牌
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
+      next({ name: 'adminLogin' });
+    } else {
+      next();
+    }
+  } else {
+    next();
+  }
 })
 
 export default router 
