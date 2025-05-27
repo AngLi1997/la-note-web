@@ -4,12 +4,15 @@
 <template>
   <div class="app-container">
     <header>
-      <nav>
-        <router-link to="/">首页</router-link>
-        <router-link to="/timeline">时间轴</router-link>
-        <router-link to="/essay">随笔</router-link>
-        <router-link to="/about">关于</router-link>
-      </nav>
+      <div class="header-content">
+        <h1 class="logo">liang-note</h1>
+        <nav>
+          <router-link to="/">文章</router-link>
+          <router-link to="/essay">吐槽</router-link>
+          <router-link to="/timeline">时间轴</router-link>
+          <router-link to="/about">关于</router-link>
+        </nav>
+      </div>
     </header>
     
     <main>
@@ -21,7 +24,7 @@
     </main>
     
     <footer>
-      <p>© {{ new Date().getFullYear() }} 交换余生. 保留所有权利。</p>
+      <p>© {{ new Date().getFullYear() }} liang-note. 保留所有权利。</p>
     </footer>
   </div>
 </template>
@@ -31,60 +34,76 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0;
 }
 
 header {
-  padding: 20px 0;
-  border-bottom: 1px solid #eee;
+  background-color: #11754b;
+  color: white;
+  padding: 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  height: 60px;
+}
+
+.logo {
+  font-size: 1.5rem;
+  margin: 0;
+  font-weight: 500;
 }
 
 nav {
   display: flex;
-  gap: 8px;
-  background-color: #f5f5f5;
-  padding: 6px;
-  border-radius: 16px;
-  align-items: center;
-  width: fit-content;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  gap: 20px;
 }
 
 nav a {
-  color: #555;
+  color: white;
   text-decoration: none;
   font-weight: 500;
-  padding: 8px 16px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  padding: 8px 0;
+  font-size: 16px;
   position: relative;
-  font-size: 15px;
+  transition: all 0.3s ease;
 }
 
 nav a:hover {
-  color: #3498db;
-  background-color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 nav a.router-link-active {
-  color: #2980b9;
-  background-color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  color: white;
+}
+
+nav a.router-link-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: white;
+  border-radius: 2px;
 }
 
 main {
   flex: 1;
-  padding: 20px 0;
+  padding: 0;
   position: relative;
 }
 
 footer {
   padding: 20px 0;
-  border-top: 1px solid #eee;
+  background-color: #f5f5f5;
   text-align: center;
   color: #666;
 }
@@ -100,5 +119,11 @@ footer {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+body {
+  margin: 0;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background-color: #f5f5f5;
 }
 </style>

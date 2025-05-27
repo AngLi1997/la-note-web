@@ -1,9 +1,17 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import ArticleListItem from '../components/ArticleListItem.vue'
 
+const props = defineProps({
+  defaultCategory: {
+    type: String,
+    default: 'all'
+  }
+})
+
 const router = useRouter()
+const route = useRoute()
 const articles = ref([
   {
     id: 1,
@@ -31,6 +39,42 @@ const articles = ref([
     category: 'life',
     tags: ['摄影', '旅行', '技巧'],
     thumbnail: 'https://picsum.photos/id/65/800/600'
+  },
+  {
+    id: 4,
+    title: '日常的思考：我们为什么感到焦虑',
+    summary: '现代社会中，焦虑已经成为常态。本文从心理学角度探讨焦虑的来源及应对方法。',
+    date: '2023-08-05',
+    category: 'life',
+    tags: ['心理', '思考', '生活'],
+    thumbnail: 'https://picsum.photos/id/42/800/600'
+  },
+  {
+    id: 5,
+    title: '咖啡馆的一次偶遇',
+    summary: '在城市的角落里，一家不起眼的咖啡馆里，发生了一个小小的故事...',
+    date: '2023-09-18',
+    category: 'life',
+    tags: ['随想', '生活', '故事'],
+    thumbnail: 'https://picsum.photos/id/54/800/600'
+  },
+  {
+    id: 6,
+    title: '2023年度技术回顾',
+    summary: '回顾2023年技术领域的重大事件和技术趋势，展望未来发展方向。',
+    date: '2023-12-28',
+    category: 'tech',
+    tags: ['年度总结', '技术趋势'],
+    thumbnail: 'https://picsum.photos/id/48/800/600'
+  },
+  {
+    id: 7,
+    title: '个人成长历程：从初学者到专业开发',
+    summary: '记录我在编程道路上的成长经历，分享学习心得和职业发展建议。',
+    date: '2023-11-15',
+    category: 'tech',
+    tags: ['成长', '学习', '职业发展'],
+    thumbnail: 'https://picsum.photos/id/91/800/600'
   }
 ])
 
@@ -49,84 +93,123 @@ const tags = computed(() => {
   return Array.from(tagSet)
 })
 
+// 统计每个标签的文章数量
+const tagCounts = computed(() => {
+  const counts = {}
+  articles.value.forEach(article => {
+    article.tags.forEach(tag => {
+      counts[tag] = (counts[tag] || 0) + 1
+    })
+  })
+  return counts
+})
+
 const viewArticle = (id) => {
   router.push({ name: 'article', params: { id } })
 }
 
-const currentCategory = ref('all')
-const filteredArticles = computed(() => {
-  if (currentCategory.value === 'all') {
-    return articles.value
+const currentCategory = ref(props.defaultCategory)
+const currentTag = ref(null)
+
+// 监听路由变化
+watch(() => route.name, (newRoute) => {
+  if (newRoute === 'essay') {
+    currentCategory.value = 'essay'
+  } else if (newRoute === 'timeline') {
+    currentCategory.value = 'timeline'
+  } else if (newRoute === 'home') {
+    currentCategory.value = 'all'
   }
-  return articles.value.filter(article => article.category === currentCategory.value)
+}, { immediate: true })
+
+const filteredArticles = computed(() => {
+  let result = articles.value
+
+  // 先按分类筛选
+  if (currentCategory.value !== 'all') {
+    result = result.filter(article => article.category === currentCategory.value)
+  }
+  
+  // 再按标签筛选
+  if (currentTag.value) {
+    result = result.filter(article => article.tags.includes(currentTag.value))
+  }
+  
+  return result
 })
 
 const setCategory = (category) => {
   currentCategory.value = category
+  currentTag.value = null // 切换分类时清除标签筛选
+}
+
+const setTag = (tag) => {
+  currentTag.value = tag === currentTag.value ? null : tag
 }
 </script>
 
 <template>
   <div class="home-view">
-    <!-- 顶部大背景和slogan -->
-    <div class="hero-section">
-      <div class="hero-content">
-        <h1 class="hero-title">交换余生</h1>
-        <p class="hero-slogan">记录技术成长，分享生活点滴</p>
+    <!-- 主要内容区域 -->
+    <div class="main-container">
+      <!-- 横向导航栏 -->
+      <div class="category-nav">
+        <div class="nav-item" :class="{ active: currentCategory === 'all' }" @click="setCategory('all')">
+          全部
+        </div>
+        <div class="nav-item" :class="{ active: currentCategory === 'tech' }" @click="setCategory('tech')">
+          技术
+        </div>
+        <div class="nav-item" :class="{ active: currentCategory === 'life' }" @click="setCategory('life')">
+          生活
+        </div>
       </div>
-    </div>
-    
-    <!-- 主要内容区域：左侧导航 + 右侧文章列表 -->
-    <div class="main-content">
-      <!-- 左侧导航栏 -->
-      <aside class="sidebar">
-        <div class="sidebar-section">
-          <h2 class="sidebar-title">分类</h2>
-          <ul class="sidebar-list">
-            <li 
-              :class="['sidebar-item', currentCategory === 'all' ? 'active' : '']"
-              @click="setCategory('all')"
-            >
-              全部文章
-            </li>
-            <li 
-              v-for="category in categories" 
-              :key="category"
-              :class="['sidebar-item', currentCategory === category ? 'active' : '']"
-              @click="setCategory(category)"
-            >
-              {{ category === 'tech' ? '技术' : category === 'life' ? '生活' : category }}
-            </li>
-          </ul>
+      
+      <!-- 文章列表 -->
+      <div class="articles-container">
+        <div v-if="filteredArticles.length === 0" class="no-articles">
+          没有找到符合条件的文章
+        </div>
+        <ArticleListItem 
+          v-else
+          v-for="article in filteredArticles" 
+          :key="article.id" 
+          :article="article"
+          @click="viewArticle(article.id)"
+        />
+      </div>
+      
+      <!-- 侧边栏 -->
+      <div class="sidebar">
+        <!-- 个人介绍卡片 -->
+        <div class="intro-card">
+          <h2>👋 中午好！这里是</h2>
+          <h1>liang-note</h1>
+          <p>我会在这里分享我的心得，干货笔记，以及生活中的感悟、吐槽、看法，与思考。</p>
+          <p>精致的五官是心动的开始，迷人的气质是动情的深渊。</p>
+          <div class="social-links">
+            <a href="#" class="social-link"></a>
+            <a href="#" class="social-link"></a>
+          </div>
+          <div class="avatar">
+            <img src="https://picsum.photos/id/1012/200/200" alt="头像">
+          </div>
         </div>
         
-        <div class="sidebar-section">
-          <h2 class="sidebar-title">标签</h2>
-          <div class="tag-cloud">
-            <span 
+        <!-- 标签面板 -->
+        <div class="tags-panel">
+          <h3 class="panel-title">标签云</h3>
+          <div class="tags-cloud">
+            <div 
               v-for="tag in tags" 
               :key="tag" 
               class="tag-item"
+              :class="{ active: currentTag === tag }"
+              @click="setTag(tag)"
             >
-              {{ tag }}
-            </span>
-          </div>
-        </div>
-      </aside>
-      
-      <!-- 右侧文章列表 -->
-      <div class="content-area">
-        <h2 class="content-title fade-in">最新文章</h2>
-        
-        <div class="articles-list">
-          <div class="list-container">
-            <ArticleListItem 
-              v-for="article in filteredArticles" 
-              :key="article.id" 
-              :article="article"
-              class="list-item"
-              @click="viewArticle(article.id)"
-            />
+              <span class="tag-name">{{ tag }}</span>
+              <span class="tag-count">{{ tagCounts[tag] }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -137,166 +220,227 @@ const setCategory = (category) => {
 <style scoped>
 .home-view {
   padding: 0;
-}
-
-/* 顶部大背景和slogan */
-.hero-section {
-  background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 80px 20px;
-  text-align: center;
-  border-radius: 0 0 10px 10px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-}
-
-.hero-title {
-  font-size: 2.5rem;
-  margin-bottom: 15px;
-}
-
-.hero-slogan {
-  font-size: 1.2rem;
-  opacity: 0.9;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-/* 主要内容区域 */
-.main-content {
-  display: flex;
-  gap: 30px;
-  padding: 0 10px;
-}
-
-/* 左侧导航栏 */
-.sidebar {
-  flex: 0 0 25%;
-  max-width: 25%;
-}
-
-.sidebar-section {
-  background: white;
-  border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-}
-
-.sidebar-title {
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #eee;
-  color: #333;
-}
-
-.sidebar-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.sidebar-item {
-  padding: 10px 15px;
-  border-radius: 6px;
-  margin-bottom: 5px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: #555;
-}
-
-.sidebar-item:hover {
   background-color: #f5f5f5;
+  min-height: 100vh;
 }
 
-.sidebar-item.active {
-  background-color: #f0f7ff;
-  color: #3498db;
+.main-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  grid-template-areas: 
+    "nav nav"
+    "articles sidebar";
+  gap: 15px;
+}
+
+/* 横向导航栏 */
+.category-nav {
+  grid-area: nav;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 0;
+  background-color: white;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item {
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.nav-item:hover {
+  background-color: rgba(17, 117, 75, 0.1);
+}
+
+.nav-item.active {
+  background-color: #11754b;
+  color: white;
+}
+
+/* 文章列表 */
+.articles-container {
+  grid-area: articles;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.no-articles {
+  background-color: white;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 侧边栏 */
+.sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.intro-card {
+  background-color: #11754b;
+  color: white;
+  border-radius: 8px;
+  padding: 25px;
+  position: relative;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.intro-card h2 {
+  font-size: 18px;
+  margin: 0 0 5px 0;
   font-weight: 500;
 }
 
-.tag-cloud {
+.intro-card h1 {
+  font-size: 26px;
+  margin: 0 0 20px 0;
+}
+
+.intro-card p {
+  margin: 10px 0;
+  line-height: 1.6;
+}
+
+.social-links {
+  margin-top: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.social-link {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 标签面板 */
+.tags-panel {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.panel-title {
+  font-size: 18px;
+  color: #333;
+  margin: 0 0 15px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.tags-cloud {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .tag-item {
-  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   padding: 6px 12px;
+  background-color: #f5f5f5;
   border-radius: 20px;
-  font-size: 14px;
-  color: #555;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .tag-item:hover {
-  background-color: #e0e0e0;
-  color: #3498db;
+  background-color: #e8f4ee;
 }
 
-/* 右侧文章列表 */
-.content-area {
-  flex: 1;
+.tag-item.active {
+  background-color: #11754b;
+  color: white;
 }
 
-.content-title {
-  margin-bottom: 20px;
-  font-size: 1.5rem;
-  color: #333;
+.tag-name {
+  font-size: 14px;
 }
 
-.articles-list {
+.tag-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.1);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.tag-item.active .tag-count {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.contact-card {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.contact-card p {
+  margin: 0 0 15px 0;
+  color: #555;
+}
+
+.qrcode {
   display: flex;
-  flex-direction: column;
-  width: 100%;
+  justify-content: center;
 }
 
-.list-container {
-  width: 100%;
-}
-
-.list-item {
-  animation: showItem 0.5s ease-out forwards;
-}
-
-/* 淡入动画 */
-.fade-in {
-  animation: fadeIn 0.8s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes showItem {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.qrcode img {
+  width: 150px;
+  height: 150px;
+  object-fit: cover;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .main-content {
-    flex-direction: column;
-  }
-  
-  .sidebar {
-    flex: 0 0 100%;
-    max-width: 100%;
-    margin-bottom: 20px;
+  .main-container {
+    grid-template-columns: 1fr;
+    grid-template-areas: 
+      "nav"
+      "articles"
+      "sidebar";
   }
 }
 </style> 
