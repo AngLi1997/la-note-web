@@ -1,4 +1,48 @@
 <script setup>
+import { ref, onMounted } from 'vue'
+import {axiosInstance} from "@/plugins/axios.js";
+
+// 用户设置信息
+const userSettings = ref({
+  userId: '',
+  username: '',
+  nickname: '',
+  avatar: '',
+  bio: '',
+  blogIntro: '',
+  contactEmail: '',
+  githubUrl: '',
+  extraContacts: ''
+})
+
+// 解析的额外联系方式
+const parsedExtraContacts = ref({})
+
+// 页面加载时获取用户设置
+onMounted(async () => {
+  try {
+    // 这里假设默认使用ID为1的用户信息，实际使用时可以从用户登录信息中获取
+    const userId = '1'
+    const response = await axiosInstance.get(`/user-settings/${userId}`)
+    console.log('接口返回数据:', response)
+    
+    if (response && response.code === 200 && response.data) {
+      userSettings.value = response.data
+      console.log('设置后的userSettings:', userSettings.value)
+      
+      // 解析额外联系方式
+      if (userSettings.value.extraContacts) {
+        try {
+          parsedExtraContacts.value = JSON.parse(userSettings.value.extraContacts)
+        } catch (e) {
+          console.error('解析额外联系方式失败:', e)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取用户设置信息失败:', error)
+  }
+})
 </script>
 
 <template>
@@ -12,11 +56,11 @@
       <div class="about-card">
         <div class="author-info">
           <div class="avatar-container fade-in" style="animation-delay: 0.2s">
-            <div class="avatar"></div>
+            <div class="avatar" :style="{ backgroundImage: userSettings.avatar ? `url(${userSettings.avatar})` : '' }"></div>
           </div>
           <div class="bio fade-in" style="animation-delay: 0.3s">
             <h2 class="section-title">个人简介</h2>
-            <p>Web开发爱好者，喜欢探索新技术，分享学习心得。同时热爱摄影、旅行，希望通过这个博客记录技术成长和生活点滴。</p>
+            <p>{{ userSettings.bio || '暂无个人简介' }}</p>
           </div>
         </div>
       </div>
@@ -24,20 +68,30 @@
       <!-- 博客介绍 -->
       <div class="about-card fade-in" style="animation-delay: 0.4s">
         <h2 class="section-title">博客介绍</h2>
-        <p>这是一个简洁的个人博客系统，用于分享技术文章和生活感悟。博客使用Vue3构建，采用了简约的设计风格，注重内容的展示和阅读体验。</p>
+        <p>{{ userSettings.blogIntro || '暂无博客介绍' }}</p>
       </div>
       
       <!-- 联系方式 -->
       <div class="about-card fade-in" style="animation-delay: 0.5s">
         <h2 class="section-title">联系方式</h2>
         <ul class="contact-list">
-          <li class="contact-item">
+          <li v-if="userSettings.contactEmail" class="contact-item">
             <span class="contact-label">邮箱：</span>
-            <a href="mailto:example@example.com" class="contact-link">example@example.com</a>
+            <a :href="`mailto:${userSettings.contactEmail}`" class="contact-link">{{ userSettings.contactEmail }}</a>
           </li>
-          <li class="contact-item">
+          <li v-if="userSettings.githubUrl" class="contact-item">
             <span class="contact-label">GitHub：</span>
-            <a href="https://github.com/example" target="_blank" class="contact-link">github.com/example</a>
+            <a :href="userSettings.githubUrl" target="_blank" class="contact-link">{{ userSettings.githubUrl }}</a>
+          </li>
+          <!-- 解析并展示额外联系方式 -->
+          <template v-if="Object.keys(parsedExtraContacts).length > 0">
+            <li v-for="(value, key) in parsedExtraContacts" :key="key" class="contact-item">
+              <span class="contact-label">{{ key }}：</span>
+              <span class="contact-link">{{ value }}</span>
+            </li>
+          </template>
+          <li v-if="!userSettings.contactEmail && !userSettings.githubUrl && Object.keys(parsedExtraContacts).length === 0" class="contact-item">
+            <span>暂无联系方式</span>
           </li>
         </ul>
       </div>
@@ -107,7 +161,6 @@ p {
   width: 100%;
   height: 100%;
   background-color: #eee;
-  background-image: url('https://picsum.photos/id/64/300/300');
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;

@@ -1,7 +1,10 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ArticleListItem from '../components/ArticleListItem.vue'
+
+// 从插件中获取配置好的axios实例
+const axios = inject('axios')
 
 const props = defineProps({
   defaultCategory: {
@@ -12,97 +15,23 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
-const articles = ref([
-  {
-    id: 1,
-    title: '如何使用Vue3构建现代Web应用',
-    summary: 'Vue3带来了许多新特性，如Composition API、Teleport、Fragments等，本文将详细介绍如何利用这些特性构建现代Web应用。',
-    date: '2023-05-15',
-    category: 'tech',
-    tags: ['Vue', 'JavaScript', 'Web开发'],
-    thumbnail: 'https://picsum.photos/id/11/800/600'
-  },
-  {
-    id: 2,
-    title: '2023年最值得学习的编程语言',
-    summary: '随着技术的不断发展，编程语言也在不断更新迭代。本文将介绍2023年最值得学习的几种编程语言及其应用场景。',
-    date: '2023-06-22',
-    category: 'tech',
-    tags: ['编程语言', '学习资源'],
-    thumbnail: 'https://picsum.photos/id/24/800/600'
-  },
-  {
-    id: 3,
-    title: '旅行中的摄影技巧',
-    summary: '旅行中如何拍出美丽的照片？本文分享一些实用的摄影技巧，帮助你在旅途中捕捉精彩瞬间。',
-    date: '2023-07-10',
-    category: 'life',
-    tags: ['摄影', '旅行', '技巧'],
-    thumbnail: 'https://picsum.photos/id/65/800/600'
-  },
-  {
-    id: 4,
-    title: '日常的思考：我们为什么感到焦虑',
-    summary: '现代社会中，焦虑已经成为常态。本文从心理学角度探讨焦虑的来源及应对方法。',
-    date: '2023-08-05',
-    category: 'life',
-    tags: ['心理', '思考', '生活'],
-    thumbnail: 'https://picsum.photos/id/42/800/600'
-  },
-  {
-    id: 5,
-    title: '咖啡馆的一次偶遇',
-    summary: '在城市的角落里，一家不起眼的咖啡馆里，发生了一个小小的故事...',
-    date: '2023-09-18',
-    category: 'life',
-    tags: ['随想', '生活', '故事'],
-    thumbnail: 'https://picsum.photos/id/54/800/600'
-  },
-  {
-    id: 6,
-    title: '2023年度技术回顾',
-    summary: '回顾2023年技术领域的重大事件和技术趋势，展望未来发展方向。',
-    date: '2023-12-28',
-    category: 'tech',
-    tags: ['年度总结', '技术趋势'],
-    thumbnail: 'https://picsum.photos/id/48/800/600'
-  },
-  {
-    id: 7,
-    title: '个人成长历程：从初学者到专业开发',
-    summary: '记录我在编程道路上的成长经历，分享学习心得和职业发展建议。',
-    date: '2023-11-15',
-    category: 'tech',
-    tags: ['成长', '学习', '职业发展'],
-    thumbnail: 'https://picsum.photos/id/91/800/600'
-  }
-])
+const articles = ref([])
+const categories = ref([])
+const tags = ref([])
+const loading = ref(false)
+const totalCount = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
-// 提取所有分类
-const categories = computed(() => {
-  const categorySet = new Set(articles.value.map(article => article.category))
-  return Array.from(categorySet)
-})
-
-// 提取所有标签
-const tags = computed(() => {
-  const tagSet = new Set()
-  articles.value.forEach(article => {
-    article.tags.forEach(tag => tagSet.add(tag))
-  })
-  return Array.from(tagSet)
-})
+// 分页信息
+const pagination = computed(() => ({
+  current: currentPage.value,
+  total: totalCount.value,
+  pageSize: pageSize.value
+}))
 
 // 统计每个标签的文章数量
-const tagCounts = computed(() => {
-  const counts = {}
-  articles.value.forEach(article => {
-    article.tags.forEach(tag => {
-      counts[tag] = (counts[tag] || 0) + 1
-    })
-  })
-  return counts
-})
+const tagCounts = ref({})
 
 const viewArticle = (id) => {
   router.push({ name: 'article', params: { id } })
@@ -110,6 +39,169 @@ const viewArticle = (id) => {
 
 const currentCategory = ref(props.defaultCategory)
 const currentTag = ref(null)
+
+// 获取文章列表
+const fetchArticles = async () => {
+  loading.value = true
+  try {
+    // 构建查询参数
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value
+    }
+    
+    // 添加分类筛选
+    if (currentCategory.value && currentCategory.value !== 'all') {
+      params.category = currentCategory.value
+    }
+    
+    // 添加标签筛选
+    if (currentTag.value) {
+      params.tag = currentTag.value
+    }
+    
+    const response = await axios.get('/articles/list', { params })
+    console.log('文章列表响应数据:', response) // 添加日志查看响应结构
+    
+    // 处理不同的响应结构
+    if (response) {
+      if (response.code === 200 && response.data) {
+        // 处理格式: {code: 200, msg: "success", data: { pageNum, pageSize, total, pages, list: [] }}
+        if (response.data.list) {
+          articles.value = response.data.list.map(article => {
+            // 处理日期格式，确保有文章日期字段
+            return {
+              ...article,
+              date: formatDate(article.createTime || article.updateTime || new Date())
+            };
+          });
+          totalCount.value = response.data.total || 0;
+        }
+        // 标准响应格式: { code: 200, data: { records: [], total: 0 } }
+        else if (response.data.records) {
+          articles.value = response.data.records.map(article => {
+            return {
+              ...article,
+              date: formatDate(article.createTime || article.updateTime || new Date())
+            };
+          });
+          totalCount.value = response.data.total || 0;
+        } 
+        // 格式: { code: 200, data: [] }
+        else if (Array.isArray(response.data)) {
+          articles.value = response.data.map(article => {
+            return {
+              ...article,
+              date: formatDate(article.createTime || article.updateTime || new Date())
+            };
+          });
+          totalCount.value = response.data.length;
+        }
+      } 
+      // 直接返回数组的格式
+      else if (Array.isArray(response)) {
+        articles.value = response.map(article => {
+          return {
+            ...article,
+            date: formatDate(article.createTime || article.updateTime || new Date())
+          };
+        });
+        totalCount.value = response.length;
+      }
+      // 其他格式，兼容处理
+      else if (typeof response === 'object') {
+        const possibleData = response.records || response.list || response.items || response.content || [];
+        articles.value = Array.isArray(possibleData) ? possibleData.map(article => {
+          return {
+            ...article,
+            date: formatDate(article.createTime || article.updateTime || new Date())
+          };
+        }) : [];
+        totalCount.value = response.total || response.totalCount || response.count || articles.value.length || 0;
+      }
+      
+      console.log('处理后的文章数据:', articles.value); // 添加日志查看处理后的数据
+    }
+  } catch (error) {
+    console.error('获取文章列表失败', error);
+    articles.value = [];
+  } finally {
+    loading.value = false;
+  }
+}
+
+// 日期格式化函数
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; // 如果解析失败，直接返回原字符串
+    
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  } catch (e) {
+    console.error('日期格式化错误:', e);
+    return dateString;
+  }
+}
+
+// 获取所有分类
+const fetchCategories = async () => {
+  try {
+    const response = await axios.get('/articles/categories')
+    if (response && response.code === 200) {
+      categories.value = response.data || []
+    }
+  } catch (error) {
+    console.error('获取分类列表失败', error)
+  }
+}
+
+// 获取所有标签
+const fetchTags = async () => {
+  try {
+    const response = await axios.get('/articles/tags')
+    if (response && response.code === 200) {
+      tags.value = response.data || []
+      
+      // 获取标签后，重新计算每个标签的数量
+      calculateTagCounts()
+    }
+  } catch (error) {
+    console.error('获取标签列表失败', error)
+  }
+}
+
+// 计算每个标签的文章数量
+const calculateTagCounts = () => {
+  // 这里理想情况是从后端获取每个标签的文章数量
+  // 暂时设置为1，后续可以修改API返回每个标签的文章数量
+  const counts = {}
+  tags.value.forEach(tag => {
+    counts[tag] = 1
+  })
+  tagCounts.value = counts
+}
+
+// 切换页码
+const handlePageChange = (page) => {
+  currentPage.value = page
+}
+
+const setCategory = (category) => {
+  currentCategory.value = category
+  currentTag.value = null // 切换分类时清除标签筛选
+  currentPage.value = 1   // 重置为第一页
+}
+
+const setTag = (tag) => {
+  currentTag.value = tag === currentTag.value ? null : tag
+  currentPage.value = 1   // 重置为第一页
+}
 
 // 监听路由变化
 watch(() => route.name, (newRoute) => {
@@ -120,32 +212,19 @@ watch(() => route.name, (newRoute) => {
   } else if (newRoute === 'home') {
     currentCategory.value = 'all'
   }
+  fetchArticles()
 }, { immediate: true })
 
-const filteredArticles = computed(() => {
-  let result = articles.value
-
-  // 先按分类筛选
-  if (currentCategory.value !== 'all') {
-    result = result.filter(article => article.category === currentCategory.value)
-  }
-  
-  // 再按标签筛选
-  if (currentTag.value) {
-    result = result.filter(article => article.tags.includes(currentTag.value))
-  }
-  
-  return result
+// 监听筛选条件变化
+watch([() => currentCategory.value, () => currentTag.value, () => currentPage.value], () => {
+  fetchArticles()
 })
 
-const setCategory = (category) => {
-  currentCategory.value = category
-  currentTag.value = null // 切换分类时清除标签筛选
-}
-
-const setTag = (tag) => {
-  currentTag.value = tag === currentTag.value ? null : tag
-}
+// 页面加载时获取数据
+onMounted(() => {
+  fetchCategories()
+  fetchTags()
+})
 </script>
 
 <template>
@@ -157,26 +236,51 @@ const setTag = (tag) => {
         <div class="nav-item" :class="{ active: currentCategory === 'all' }" @click="setCategory('all')">
           全部
         </div>
-        <div class="nav-item" :class="{ active: currentCategory === 'tech' }" @click="setCategory('tech')">
-          技术
-        </div>
-        <div class="nav-item" :class="{ active: currentCategory === 'life' }" @click="setCategory('life')">
-          生活
+        <div 
+          v-for="category in categories" 
+          :key="category" 
+          class="nav-item" 
+          :class="{ active: currentCategory === category }" 
+          @click="setCategory(category)"
+        >
+          {{ category }}
         </div>
       </div>
       
       <!-- 文章列表 -->
       <div class="articles-container">
-        <div v-if="filteredArticles.length === 0" class="no-articles">
+        <div v-if="loading" class="loading-state">
+          加载中...
+        </div>
+        <div v-else-if="articles.length === 0" class="no-articles">
           没有找到符合条件的文章
         </div>
         <ArticleListItem 
           v-else
-          v-for="article in filteredArticles" 
+          v-for="article in articles" 
           :key="article.id" 
           :article="article"
           @click="viewArticle(article.id)"
         />
+        
+        <!-- 分页器 -->
+        <div v-if="totalCount > 0" class="pagination">
+          <button 
+            :disabled="currentPage === 1" 
+            @click="handlePageChange(currentPage - 1)"
+            class="page-btn"
+          >
+            上一页
+          </button>
+          <span class="page-info">{{ currentPage }} / {{ Math.ceil(totalCount / pageSize) }}</span>
+          <button 
+            :disabled="currentPage >= Math.ceil(totalCount / pageSize)" 
+            @click="handlePageChange(currentPage + 1)"
+            class="page-btn"
+          >
+            下一页
+          </button>
+        </div>
       </div>
       
       <!-- 侧边栏 -->
@@ -208,7 +312,7 @@ const setTag = (tag) => {
               @click="setTag(tag)"
             >
               <span class="tag-name">{{ tag }}</span>
-              <span class="tag-count">{{ tagCounts[tag] }}</span>
+              <span class="tag-count">{{ tagCounts[tag] || 0 }}</span>
             </div>
           </div>
         </div>
@@ -246,6 +350,7 @@ const setTag = (tag) => {
   border-radius: 8px;
   padding: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
 }
 
 .nav-item {
@@ -254,6 +359,7 @@ const setTag = (tag) => {
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -273,6 +379,7 @@ const setTag = (tag) => {
   gap: 15px;
 }
 
+.loading-state,
 .no-articles {
   background-color: white;
   border-radius: 8px;
@@ -281,6 +388,39 @@ const setTag = (tag) => {
   color: #666;
   font-size: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 分页器样式 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 15px;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background-color: #11754b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background-color: #0d5f3d;
+}
+
+.page-btn:disabled {
+  background-color: #88c5aa;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #666;
 }
 
 /* 侧边栏 */

@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 
 const router = useRouter();
 const username = ref('');
@@ -18,20 +19,33 @@ const login = async () => {
   errorMessage.value = '';
 
   try {
-    // 这里应该是实际的登录逻辑，例如调用 API
-    // 目前只是模拟登录过程
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 调用后端登录接口
+    const response = await axios.post('/api/auth/login', {
+      username: username.value,
+      password: password.value
+    });
     
-    // 假设用户名为 admin，密码为 admin123 时登录成功
-    if (username.value === 'admin' && password.value === 'admin123') {
-      // 登录成功后可以存储 token 或用户信息
-      localStorage.setItem('adminToken', 'sample-token');
-      router.push('/admin/dashboard'); // 登录成功后跳转到管理员仪表板
+    // 处理登录成功的响应
+    if (response.data.code === 200) {
+      // 保存token和用户信息
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('userInfo', JSON.stringify(response.data.data.userInfo));
+      
+      // 登录成功后跳转到管理员仪表板
+      router.push('/admin/dashboard');
     } else {
-      errorMessage.value = '用户名或密码错误';
+      // 处理业务逻辑错误
+      errorMessage.value = response.data.message || '登录失败';
     }
   } catch (error) {
-    errorMessage.value = '登录失败，请稍后再试';
+    // 处理网络错误或服务器错误
+    if (error.response) {
+      errorMessage.value = error.response.data.message || '登录失败，请检查用户名和密码';
+    } else if (error.request) {
+      errorMessage.value = '无法连接到服务器，请检查网络连接';
+    } else {
+      errorMessage.value = '登录请求失败，请稍后再试';
+    }
     console.error('登录错误:', error);
   } finally {
     isLoading.value = false;

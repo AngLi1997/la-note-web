@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, ref } from 'vue'
 
 const props = defineProps({
   article: {
@@ -8,20 +8,40 @@ const props = defineProps({
   }
 })
 
+const defaultImage = 'https://picsum.photos/seed/placeholder/300/200' // 默认图片
+
 defineEmits(['click'])
 </script>
 
 <template>
   <div class="article-list-item" @click="$emit('click')">
     <div class="article-image">
-      <img :src="article.thumbnail" :alt="article.title" />
+      <img :src="article.thumbnail" :alt="article.title"/>
     </div>
     <div class="article-content">
       <h2 class="article-title">{{ article.title }}</h2>
-      <div class="article-date">{{ article.date }}</div>
+      <p class="article-summary" v-if="article.summary">{{ article.summary }}</p>
+      <div class="article-meta">
+        <span class="article-category" v-if="article.category">{{ article.category }}</span>
+        <span class="article-date">{{ article.date }}</span>
+        <span class="article-views"><i class="view-icon"></i>{{ article.viewCount || 0 }}</span>
+      </div>
+      <div class="article-tags" v-if="article.tags && article.tags.length">
+        <span class="tag" v-for="(tag, index) in getArticleTags(article.tags)" :key="index">{{ tag }}</span>
+      </div>
     </div>
   </div>
 </template>
+
+<script>
+// 处理不同格式的标签（字符串或数组）
+function getArticleTags(tags) {
+  if (!tags) return [];
+  if (Array.isArray(tags)) return tags;
+  if (typeof tags === 'string') return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+  return [];
+}
+</script>
 
 <style scoped>
 .article-list-item {
@@ -29,10 +49,11 @@ defineEmits(['click'])
   gap: 15px;
   background-color: white;
   border-radius: 8px;
-  padding: 15px;
+  padding: 20px;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  align-items: center;
 }
 
 .article-list-item:hover {
@@ -41,35 +62,95 @@ defineEmits(['click'])
 }
 
 .article-image {
-  flex: 0 0 70px;
-  height: 70px;
+  flex: 0 0 120px;
+  height: 120px;
   overflow: hidden;
   border-radius: 6px;
+  background-color: #f5f5f5;
+  position: relative;
 }
 
 .article-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 .article-content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 .article-title {
   margin: 0 0 8px 0;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 500;
   color: #333;
   line-height: 1.4;
 }
 
-.article-date {
+.article-summary {
+  margin: 0 0 10px 0;
   font-size: 14px;
+  color: #666;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-size: 13px;
   color: #888;
+  margin-bottom: 8px;
+}
+
+.article-category {
+  color: #11754b;
+  font-weight: 500;
+}
+
+.article-views {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.view-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23888888'%3E%3Cpath d='M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z'/%3E%3C/svg%3E");
+  background-size: contain;
+}
+
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.tag {
+  font-size: 12px;
+  padding: 2px 8px;
+  background-color: #f0f9f4;
+  color: #11754b;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .article-image {
+    display: none;
+  }
 }
 </style> 
