@@ -3,8 +3,8 @@ import { ref, onMounted, computed, watch, inject } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ArticleListItem from '../components/ArticleListItem.vue'
 
-// 从插件中获取配置好的axios实例
-const axios = inject('axios')
+// 使用注入的API
+const api = inject('api')
 
 const props = defineProps({
   defaultCategory: {
@@ -60,7 +60,7 @@ const fetchArticles = async () => {
       params.tag = currentTag.value
     }
     
-    const response = await axios.get('/articles/list', { params })
+    const response = await api.article.getArticlesList(params)
     console.log('文章列表响应数据:', response) // 添加日志查看响应结构
     
     // 处理不同的响应结构
@@ -152,7 +152,7 @@ const formatDate = (dateString) => {
 // 获取所有分类
 const fetchCategories = async () => {
   try {
-    const response = await axios.get('/articles/categories')
+    const response = await api.article.getCategories()
     if (response && response.code === 200) {
       categories.value = response.data || []
     }
@@ -164,7 +164,7 @@ const fetchCategories = async () => {
 // 获取所有标签
 const fetchTags = async () => {
   try {
-    const response = await axios.get('/articles/tags')
+    const response = await api.article.getTags()
     if (response && response.code === 200) {
       tags.value = response.data || []
       

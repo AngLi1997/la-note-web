@@ -67,7 +67,4 @@ export default {
     // 保存router实例到window对象，供响应拦截器使用
     app.config.globalProperties.$router && (window.router = app.config.globalProperties.$router)
   }
-}
-
-// 导出axios实例供直接引入使用
-export { axiosInstance } 
+} 

@@ -1,8 +1,9 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, inject } from 'vue';
 import { useRouter } from 'vue-router';
-import axios from 'axios';
 
+// 使用注入的API
+const api = inject('api')
 const router = useRouter();
 const username = ref('');
 const password = ref('');
@@ -20,22 +21,22 @@ const login = async () => {
 
   try {
     // 调用后端登录接口
-    const response = await axios.post('/api/auth/login', {
+    const response = await api.auth.login({
       username: username.value,
       password: password.value
     });
     
     // 处理登录成功的响应
-    if (response.data.code === 200) {
+    if (response.code === 200) {
       // 保存token和用户信息
-      localStorage.setItem('token', response.data.data.token);
-      localStorage.setItem('userInfo', JSON.stringify(response.data.data.userInfo));
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo));
       
       // 登录成功后跳转到管理员仪表板
       router.push('/admin/dashboard');
     } else {
       // 处理业务逻辑错误
-      errorMessage.value = response.data.message || '登录失败';
+      errorMessage.value = response.message || '登录失败';
     }
   } catch (error) {
     // 处理网络错误或服务器错误

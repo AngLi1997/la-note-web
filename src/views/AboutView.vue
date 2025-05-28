@@ -1,6 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import {axiosInstance} from "@/plugins/axios.js";
+import { ref, onMounted, inject } from 'vue'
+
+// 使用注入的API
+const api = inject('api')
 
 // 用户设置信息
 const userSettings = ref({
@@ -23,7 +25,7 @@ onMounted(async () => {
   try {
     // 这里假设默认使用ID为1的用户信息，实际使用时可以从用户登录信息中获取
     const userId = '1'
-    const response = await axiosInstance.get(`/user-settings/${userId}`)
+    const response = await api.user.getUserSetting(userId)
     console.log('接口返回数据:', response)
     
     if (response && response.code === 200 && response.data) {
