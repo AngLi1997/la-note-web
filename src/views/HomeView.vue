@@ -6,6 +6,22 @@ import ArticleListItem from '../components/ArticleListItem.vue'
 // 使用注入的API
 const api = inject('api')
 
+// 添加问候语计算属性
+const greeting = computed(() => {
+  const hour = new Date().getHours()
+  if (hour >= 5 && hour < 9) {
+    return '早上好'
+  } else if (hour >= 9 && hour < 12) {
+    return '上午好'
+  } else if (hour >= 12 && hour < 14) {
+    return '中午好'
+  } else if (hour >= 14 && hour < 18) {
+    return '下午好'
+  } else {
+    return '晚上好'
+  }
+})
+
 const props = defineProps({
   defaultCategory: {
     type: String,
@@ -366,7 +382,7 @@ onMounted(() => {
       <div class="sidebar">
         <!-- 个人介绍卡片 -->
         <div class="intro-card">
-          <h2>👋 中午好！这里是</h2>
+          <h2>👋 {{ greeting }}！这里是</h2>
           <h1>{{ siteSettings.title }}</h1>
           <p>{{ siteSettings.description }}</p>
           <p>{{ siteSettings.slogan }}</p>
