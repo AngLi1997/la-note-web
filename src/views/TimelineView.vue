@@ -1,58 +1,71 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
+import { ElLoading, ElMessage } from 'element-plus'
 
-const timelineEvents = ref([
-  {
-    id: 1,
-    title: '个人博客上线',
-    content: '经过一个月的努力，个人技术博客终于正式上线了！将持续分享技术心得和学习笔记。',
-    date: '2023-12-15',
-    category: '技术',
-    icon: '🚀'
-  },
-  {
-    id: 2,
-    title: '学习Vue3源码',
-    content: '开始深入研究Vue3的源码实现，尤其是关于响应式系统和编译优化的部分。记录了一些重要的设计思想和实现细节。',
-    date: '2023-11-20',
-    category: '学习',
-    icon: '📚'
-  },
-  {
-    id: 3,
-    title: '参加技术分享会',
-    content: '参加了一场关于前端性能优化的技术分享会，收获颇丰。对首屏加载优化和资源懒加载有了新的理解。',
-    date: '2023-10-05',
-    category: '活动',
-    icon: '🎤'
-  },
-  {
-    id: 4,
-    title: '开源项目贡献',
-    content: '向一个流行的开源项目提交了第一个PR，修复了一个UI渲染的bug。很高兴能为开源社区做出贡献！',
-    date: '2023-09-18',
-    category: '开源',
-    icon: '🔧'
-  },
-  {
-    id: 5,
-    title: '开始学习TypeScript',
-    content: '决定深入学习TypeScript，强类型系统对于大型项目的维护非常有帮助。记录了一些关键概念和实践经验。',
-    date: '2023-08-10',
-    category: '学习',
-    icon: '💡'
-  },
-  {
-    id: 6,
-    title: '第一个独立项目',
-    content: '完成了第一个完全由自己设计和开发的Web应用，采用了Vue3+TypeScript+Vite的技术栈。',
-    date: '2023-07-02',
-    category: '项目',
-    icon: '🏆'
-  }
-])
+// 注入API
+const api = inject('api')
 
+// 数据状态
+const timelineEvents = ref([])
 const filterCategory = ref('all')
+const categories = ref(['all'])
+const loading = ref(false)
+
+// 获取时间轴事件数据
+const fetchTimelineEvents = async () => {
+  const loadingInstance = ElLoading.service({
+    target: '.timeline-view',
+    text: '加载中...'
+  })
+  
+  loading.value = true
+  
+  try {
+    const response = await api.timeline.getTimelineEvents()
+    timelineEvents.value = response.data || []
+    
+    // 获取分类
+    await fetchCategories()
+  } catch (error) {
+    console.error('获取时间轴数据失败:', error)
+    ElMessage.error('获取时间轴数据失败')
+  } finally {
+    loading.value = false
+    loadingInstance.close()
+  }
+}
+
+// 获取分类数据
+const fetchCategories = async () => {
+  try {
+    const response = await api.timeline.getTimelineCategories()
+    const categorySet = new Set(['all'])
+    
+    // 如果后端返回了分类数据，使用后端数据
+    if (response.data && response.data.length > 0) {
+      response.data.forEach(category => categorySet.add(category))
+    } else {
+      // 否则从事件数据中提取分类
+      timelineEvents.value.forEach(event => {
+        if (event.category) {
+          categorySet.add(event.category)
+        }
+      })
+    }
+    
+    categories.value = Array.from(categorySet)
+  } catch (error) {
+    console.error('获取分类数据失败:', error)
+    // 从事件中提取分类作为备选
+    const extractedCategories = new Set(['all'])
+    timelineEvents.value.forEach(event => {
+      if (event.category) {
+        extractedCategories.add(event.category)
+      }
+    })
+    categories.value = Array.from(extractedCategories)
+  }
+}
 
 const filteredEvents = computed(() => {
   if (filterCategory.value === 'all') {
@@ -61,14 +74,14 @@ const filteredEvents = computed(() => {
   return timelineEvents.value.filter(event => event.category === filterCategory.value)
 })
 
-const categories = computed(() => {
-  const categorySet = new Set(timelineEvents.value.map(event => event.category))
-  return ['all', ...Array.from(categorySet)]
-})
-
 const setFilter = (category) => {
   filterCategory.value = category
 }
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchTimelineEvents()
+})
 </script>
 
 <template>
@@ -90,7 +103,14 @@ const setFilter = (category) => {
         </div>
       </div>
       
-      <div class="timeline-container">
+      <!-- 空数据提示 -->
+      <div v-if="!loading && filteredEvents.length === 0" class="empty-state">
+        <div class="empty-icon">📅</div>
+        <h3>暂无时间轴数据</h3>
+        <p>当前分类下没有可显示的事件</p>
+      </div>
+      
+      <div v-else class="timeline-container">
         <div class="timeline-line"></div>
         
         <div 
@@ -98,7 +118,7 @@ const setFilter = (category) => {
           :key="event.id"
           class="timeline-item"
         >
-          <div class="timeline-icon">{{ event.icon }}</div>
+          <div class="timeline-icon">{{ event.icon || '📝' }}</div>
           <div class="timeline-content">
             <div class="timeline-date">{{ event.date }}</div>
             <div class="timeline-category">{{ event.category }}</div>
@@ -278,5 +298,31 @@ const setFilter = (category) => {
     height: 30px;
     font-size: 14px;
   }
+}
+
+.empty-state {
+  background-color: white;
+  border-radius: 8px;
+  padding: 40px 20px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin: 20px 0;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: #11754b;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.empty-state p {
+  color: #666;
+  margin: 0;
 }
 </style> 

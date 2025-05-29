@@ -174,6 +174,28 @@ export const complaintApi = {
 }
 
 /**
+ * 时间轴相关API
+ */
+export const timelineApi = {
+  /**
+   * 获取时间轴事件列表
+   * @param {Object} params 查询参数
+   * @returns {Promise} 返回请求Promise
+   */
+  getTimelineEvents: (params, instance = axiosInstance) => {
+    return instance.get('/timeline/events', { params })
+  },
+  
+  /**
+   * 获取时间轴事件分类
+   * @returns {Promise} 返回请求Promise
+   */
+  getTimelineCategories: (instance = axiosInstance) => {
+    return instance.get('/timeline/categories')
+  }
+}
+
+/**
  * 初始化API，使用注入的axios实例
  * @param {Object} injectedAxios 注入的axios实例
  */
@@ -197,5 +219,10 @@ export const initApi = (injectedAxios) => {
   Object.keys(complaintApi).forEach(key => {
     const originalMethod = complaintApi[key]
     complaintApi[key] = (...args) => originalMethod(...args, injectedAxios)
+  })
+  
+  Object.keys(timelineApi).forEach(key => {
+    const originalMethod = timelineApi[key]
+    timelineApi[key] = (...args) => originalMethod(...args, injectedAxios)
   })
 } 
