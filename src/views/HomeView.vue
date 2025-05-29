@@ -46,8 +46,8 @@ const fetchArticles = async () => {
   try {
     // 构建查询参数
     const params = {
-      page: currentPage.value,
-      size: pageSize.value
+      pageNum: currentPage.value,
+      pageSize: pageSize.value
     }
     
     // 添加分类筛选
