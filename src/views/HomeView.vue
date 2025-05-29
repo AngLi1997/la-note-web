@@ -42,6 +42,16 @@ const silentLoading = ref(true)
 // 添加一个变量记录是否首次加载
 const hasAnimated = ref(false)
 
+// 网站设置数据
+const siteSettings = ref({
+  title: '',
+  subtitle: '',
+  description: '',
+  slogan: '',
+  avatar: '',
+  socialLinks: []
+})
+
 const viewArticle = (id) => {
   router.push({ name: 'article', params: { id } })
 }
@@ -236,6 +246,18 @@ const setTag = (tag) => {
   currentPage.value = 1   // 重置为第一页
 }
 
+// 获取网站设置
+const fetchSiteSettings = async () => {
+  try {
+    const response = await api.site.getSiteSetting()
+    if (response && response.code === 200) {
+      siteSettings.value = response.data || {}
+    }
+  } catch (error) {
+    console.error('获取网站设置失败', error)
+  }
+}
+
 // 监听路由变化
 watch(() => route.name, (newRoute) => {
   if (newRoute === 'essay') {
@@ -257,6 +279,7 @@ watch([() => currentCategory.value, () => currentTag.value, () => currentPage.va
 onMounted(() => {
   fetchCategories()
   fetchTags()
+  fetchSiteSettings()
   silentLoading.value = true
 })
 </script>
@@ -344,15 +367,14 @@ onMounted(() => {
         <!-- 个人介绍卡片 -->
         <div class="intro-card">
           <h2>👋 中午好！这里是</h2>
-          <h1>liang-note</h1>
-          <p>我会在这里分享我的心得，干货笔记，以及生活中的感悟、吐槽、看法，与思考。</p>
-          <p>精致的五官是心动的开始，迷人的气质是动情的深渊。</p>
+          <h1>{{ siteSettings.title }}</h1>
+          <p>{{ siteSettings.description }}</p>
+          <p>{{ siteSettings.slogan }}</p>
           <div class="social-links">
-            <a href="#" class="social-link"></a>
-            <a href="#" class="social-link"></a>
+            <a v-for="link in siteSettings.socialLinks" :key="link" :href="link" class="social-link"></a>
           </div>
           <div class="avatar">
-            <img src="https://picsum.photos/id/1012/200/200" alt="头像">
+            <img :src="siteSettings.avatar" alt="头像">
           </div>
         </div>
         

@@ -196,6 +196,28 @@ export const timelineApi = {
 }
 
 /**
+ * 网站设置相关API
+ */
+export const siteSettingApi = {
+  /**
+   * 获取网站设置
+   * @returns {Promise} 返回请求Promise
+   */
+  getSiteSetting: (instance = axiosInstance) => {
+    return instance.get('/site-settings')
+  },
+  
+  /**
+   * 更新网站设置
+   * @param {Object} data 设置数据
+   * @returns {Promise} 返回请求Promise
+   */
+  updateSiteSetting: (data, instance = axiosInstance) => {
+    return instance.put('/site-settings', data)
+  }
+}
+
+/**
  * 初始化API，使用注入的axios实例
  * @param {Object} injectedAxios 注入的axios实例
  */
@@ -224,5 +246,10 @@ export const initApi = (injectedAxios) => {
   Object.keys(timelineApi).forEach(key => {
     const originalMethod = timelineApi[key]
     timelineApi[key] = (...args) => originalMethod(...args, injectedAxios)
+  })
+  
+  Object.keys(siteSettingApi).forEach(key => {
+    const originalMethod = siteSettingApi[key]
+    siteSettingApi[key] = (...args) => originalMethod(...args, injectedAxios)
   })
 } 
