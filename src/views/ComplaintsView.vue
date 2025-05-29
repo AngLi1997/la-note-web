@@ -1,0 +1,334 @@
+<script setup>
+import { ref, onMounted, computed, watch, inject } from 'vue'
+import { useRouter } from 'vue-router'
+import ComplaintListItem from '../components/ComplaintListItem.vue'
+
+// 使用注入的API
+const api = inject('api')
+
+const router = useRouter()
+const complaints = ref([])
+const types = ref([])
+const moods = ref([])
+const loading = ref(false)
+const totalCount = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// 分页信息
+const pagination = computed(() => ({
+  current: currentPage.value,
+  total: totalCount.value,
+  pageSize: pageSize.value
+}))
+
+const viewComplaint = (id) => {
+  router.push({ name: 'complaint', params: { id } })
+}
+
+const currentType = ref(null)
+const currentMood = ref(null)
+
+// 获取吐槽列表
+const fetchComplaints = async () => {
+  loading.value = true
+  try {
+    // 构建查询参数
+    const params = {
+      pageNum: currentPage.value,
+      pageSize: pageSize.value
+    }
+    
+    // 添加类型筛选
+    if (currentType.value) {
+      params.type = currentType.value
+    }
+    
+    // 添加心情筛选
+    if (currentMood.value) {
+      params.mood = currentMood.value
+    }
+    
+    const response = await api.complaint.getComplaintsList(params)
+    console.log('吐槽列表响应数据:', response)
+    
+    // 处理响应数据
+    if (response && response.code === 200 && response.data) {
+      if (response.data.list) {
+        complaints.value = response.data.list.map(complaint => {
+          return {
+            ...complaint,
+            date: formatDate(complaint.createTime || complaint.updateTime || new Date())
+          }
+        })
+        totalCount.value = response.data.total || 0
+      } else if (Array.isArray(response.data)) {
+        complaints.value = response.data.map(complaint => {
+          return {
+            ...complaint,
+            date: formatDate(complaint.createTime || complaint.updateTime || new Date())
+          }
+        })
+        totalCount.value = response.data.length
+      }
+    }
+  } catch (error) {
+    console.error('获取吐槽列表失败', error)
+    complaints.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// 日期格式化函数
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return dateString
+    
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  } catch (e) {
+    console.error('日期格式化错误:', e)
+    return dateString
+  }
+}
+
+// 获取所有心情标签
+const fetchMoods = async () => {
+  try {
+    const response = await api.complaint.getMoods()
+    if (response && response.code === 200) {
+      moods.value = response.data || []
+    }
+  } catch (error) {
+    console.error('获取心情标签失败', error)
+  }
+}
+
+// 切换页码
+const handlePageChange = (page) => {
+  currentPage.value = page
+}
+
+const setType = (type) => {
+  currentType.value = type === currentType.value ? null : type
+  currentPage.value = 1   // 重置为第一页
+}
+
+const setMood = (mood) => {
+  currentMood.value = mood === currentMood.value ? null : mood
+  currentPage.value = 1   // 重置为第一页
+}
+
+// 监听筛选条件变化
+watch([() => currentType.value, () => currentMood.value, () => currentPage.value], () => {
+  fetchComplaints()
+})
+
+// 页面加载时获取数据
+onMounted(() => {
+  fetchComplaints()
+  fetchMoods()
+})
+</script>
+
+<template>
+  <div class="complaints-view">
+    <h1 class="page-title">吐槽天地</h1>
+    <p class="page-description">在这里，你可以看到各种有趣、情绪化的吐槽内容，释放压力，分享心情。</p>
+    
+    <!-- 筛选器 -->
+    <div class="filters">
+      <div class="filter-section">
+        <h3 class="filter-title">心情标签</h3>
+        <div class="filter-tags">
+          <div 
+            v-for="mood in moods" 
+            :key="mood" 
+            class="filter-tag mood-tag"
+            :class="{ active: currentMood === mood }"
+            @click="setMood(mood)"
+          >
+            {{ mood }}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 吐槽列表 -->
+    <div class="complaints-container">
+      <div v-if="loading" class="loading-state">
+        加载中...
+      </div>
+      <div v-else-if="complaints.length === 0" class="no-complaints">
+        没有找到符合条件的吐槽
+      </div>
+      <ComplaintListItem 
+        v-else
+        v-for="complaint in complaints" 
+        :key="complaint.id" 
+        :complaint="complaint"
+        @click="viewComplaint(complaint.id)"
+      />
+      
+      <!-- 分页器 -->
+      <div v-if="totalCount > 0" class="pagination">
+        <button 
+          :disabled="currentPage === 1" 
+          @click="handlePageChange(currentPage - 1)"
+          class="page-btn"
+        >
+          上一页
+        </button>
+        <span class="page-info">{{ currentPage }} / {{ Math.ceil(totalCount / pageSize) }}</span>
+        <button 
+          :disabled="currentPage >= Math.ceil(totalCount / pageSize)" 
+          @click="handlePageChange(currentPage + 1)"
+          class="page-btn"
+        >
+          下一页
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.complaints-view {
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 32px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.page-description {
+  font-size: 16px;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.filters {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.filter-section {
+  margin-bottom: 15px;
+}
+
+.filter-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-title {
+  font-size: 16px;
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.filter-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-tag {
+  padding: 6px 12px;
+  background-color: #f5f5f5;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-tag:hover {
+  background-color: #e8f4ee;
+}
+
+.filter-tag.active {
+  background-color: #11754b;
+  color: white;
+}
+
+.mood-tag {
+  display: flex;
+  align-items: center;
+}
+
+.complaints-container {
+  margin-top: 20px;
+}
+
+.loading-state,
+.no-complaints {
+  background-color: white;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  color: #666;
+  font-size: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* 分页器样式 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 15px;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background-color: #11754b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background-color: #0d5f3d;
+}
+
+.page-btn:disabled {
+  background-color: #88c5aa;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .complaints-view {
+    padding: 15px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .filters {
+    padding: 15px;
+  }
+}
+</style> 
