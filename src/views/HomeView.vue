@@ -64,8 +64,12 @@ const siteSettings = ref({
   subtitle: '',
   description: '',
   slogan: '',
-  avatar: '',
   socialLinks: []
+})
+
+// 用户设置数据
+const userSetting = ref({
+  avatar: ''
 })
 
 const viewArticle = (id) => {
@@ -273,6 +277,20 @@ const fetchSiteSettings = async () => {
   }
 }
 
+// 获取用户设置（管理员）
+const fetchUserSetting = async () => {
+  try {
+    // 使用管理员ID，后期可根据实际情况修改
+    const adminId = '1'
+    const response = await api.user.getUserSetting(adminId)
+    if (response && response.code === 200) {
+      userSetting.value = response.data || {}
+    }
+  } catch (error) {
+    console.error('获取用户设置失败', error)
+  }
+}
+
 // 监听路由变化
 watch(() => route.name, (newRoute) => {
   if (newRoute === 'essay') {
@@ -295,6 +313,7 @@ onMounted(() => {
   fetchCategories()
   fetchTags()
   fetchSiteSettings()
+  fetchUserSetting()
 })
 </script>
 
@@ -381,7 +400,7 @@ onMounted(() => {
             </a>
           </div>
           <div class="avatar">
-            <img :src="siteSettings.avatar" alt="头像">
+            <img :src="userSetting.avatar" alt="头像">
           </div>
         </div>
         

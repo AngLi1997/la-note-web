@@ -210,7 +210,7 @@ onMounted(() => {
 
 .timeline-icon {
   position: absolute;
-  left: -40px;
+  left: -45px;
   width: 40px;
   height: 40px;
   background-color: #11754b;
@@ -236,7 +236,7 @@ onMounted(() => {
   content: '';
   position: absolute;
   left: -10px;
-  top: 20px;
+  top: 14px;
   width: 0;
   height: 0;
   border-top: 10px solid transparent;
