@@ -62,7 +62,7 @@ const closeDropdown = () => {
         <h1 class="logo">NOTE</h1>
         <nav class="main-nav">
           <router-link to="/">文章</router-link>
-          <router-link to="/essay">吐槽</router-link>
+          <router-link to="/complaints">吐槽</router-link>
           <router-link to="/timeline">时间轴</router-link>
           <router-link to="/about">关于</router-link>
         </nav>

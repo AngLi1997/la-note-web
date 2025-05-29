@@ -24,6 +24,16 @@ const router = createRouter({
       component: () => import('../views/EssayView.vue')
     },
     {
+      path: '/complaints',
+      name: 'complaints',
+      component: () => import('../views/ComplaintsView.vue')
+    },
+    {
+      path: '/complaint/:id',
+      name: 'complaint',
+      component: () => import('../views/ComplaintDetailView.vue')
+    },
+    {
       path: '/timeline',
       name: 'timeline',
       component: () => import('../views/TimelineView.vue')

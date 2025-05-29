@@ -143,6 +143,37 @@ export const authApi = {
 }
 
 /**
+ * 吐槽相关API
+ */
+export const complaintApi = {
+  /**
+   * 获取吐槽列表
+   * @param {Object} params 查询参数
+   * @returns {Promise} 返回请求Promise
+   */
+  getComplaintsList: (params, instance = axiosInstance) => {
+    return instance.get('/complaints/list', { params })
+  },
+  
+  /**
+   * 获取心情标签
+   * @returns {Promise} 返回请求Promise
+   */
+  getMoods: (instance = axiosInstance) => {
+    return instance.get('/complaints/moods')
+  },
+  
+  /**
+   * 获取吐槽详情
+   * @param {string} id 吐槽ID
+   * @returns {Promise} 返回请求Promise
+   */
+  getComplaintById: (id, instance = axiosInstance) => {
+    return instance.get(`/complaints/${id}`)
+  }
+}
+
+/**
  * 初始化API，使用注入的axios实例
  * @param {Object} injectedAxios 注入的axios实例
  */
@@ -161,5 +192,10 @@ export const initApi = (injectedAxios) => {
   Object.keys(authApi).forEach(key => {
     const originalMethod = authApi[key]
     authApi[key] = (...args) => originalMethod(...args, injectedAxios)
+  })
+  
+  Object.keys(complaintApi).forEach(key => {
+    const originalMethod = complaintApi[key]
+    complaintApi[key] = (...args) => originalMethod(...args, injectedAxios)
   })
 } 
