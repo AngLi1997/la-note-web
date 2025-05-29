@@ -29,7 +29,7 @@ const pagination = computed(() => ({
 }))
 
 const viewComplaint = (id) => {
-  router.push({ name: 'complaint', params: { id } })
+  router.push({ name: 'moment', params: { id } })
 }
 
 const currentType = ref(null)
@@ -166,7 +166,7 @@ onMounted(() => {
 
 <template>
   <div class="complaints-view">
-    <h1 class="page-title fade-in">拾光时刻</h1>
+    <h1 class="page-title fade-in">拾光</h1>
     <p class="page-description fade-in" style="animation-delay: 0.1s">拾起光阴里的点滴，记录当下。</p>
     
     <!-- 筛选器 -->
