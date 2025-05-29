@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch, inject } from 'vue'
+import { ref, onMounted, computed, watch, inject, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import ComplaintListItem from '../components/ComplaintListItem.vue'
 
@@ -14,6 +14,11 @@ const loading = ref(false)
 const totalCount = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
+
+// 添加新的变量来区分初始加载和切换加载
+const initialLoading = ref(true)
+const switchLoading = ref(false)
+const oldComplaints = ref([])
 
 // 分页信息
 const pagination = computed(() => ({
@@ -31,7 +36,16 @@ const currentMood = ref(null)
 
 // 获取吐槽列表
 const fetchComplaints = async () => {
-  loading.value = true
+  const isInitial = complaints.value.length === 0
+  
+  if (isInitial) {
+    initialLoading.value = true
+  } else {
+    // 切换标签时，保存旧数据并设置切换状态
+    switchLoading.value = true
+    oldComplaints.value = [...complaints.value]
+  }
+  
   try {
     // 构建查询参数
     const params = {
@@ -50,12 +64,13 @@ const fetchComplaints = async () => {
     }
     
     const response = await api.complaint.getComplaintsList(params)
-    console.log('吐槽列表响应数据:', response)
     
     // 处理响应数据
+    let newComplaints = []
+    
     if (response && response.code === 200 && response.data) {
       if (response.data.list) {
-        complaints.value = response.data.list.map(complaint => {
+        newComplaints = response.data.list.map(complaint => {
           return {
             ...complaint,
             date: formatDate(complaint.createTime || complaint.updateTime || new Date())
@@ -63,7 +78,7 @@ const fetchComplaints = async () => {
         })
         totalCount.value = response.data.total || 0
       } else if (Array.isArray(response.data)) {
-        complaints.value = response.data.map(complaint => {
+        newComplaints = response.data.map(complaint => {
           return {
             ...complaint,
             date: formatDate(complaint.createTime || complaint.updateTime || new Date())
@@ -71,12 +86,22 @@ const fetchComplaints = async () => {
         })
         totalCount.value = response.data.length
       }
+      
+      // 使用nextTick确保DOM更新后再替换数据
+      nextTick(() => {
+        // 替换数据，一次性更新避免多次重绘
+        complaints.value = newComplaints
+      })
     }
   } catch (error) {
     console.error('获取吐槽列表失败', error)
     complaints.value = []
   } finally {
-    loading.value = false
+    // 延迟关闭加载状态
+    setTimeout(() => {
+      initialLoading.value = false
+      switchLoading.value = false
+    }, 300)
   }
 }
 
@@ -163,19 +188,22 @@ onMounted(() => {
     
     <!-- 吐槽列表 -->
     <div class="complaints-container">
-      <div v-if="loading" class="loading-state">
+      <div v-if="initialLoading" class="loading-state">
         加载中...
       </div>
-      <div v-else-if="complaints.length === 0" class="no-complaints">
+      <div v-else-if="complaints.length === 0 && !switchLoading" class="no-complaints">
         没有找到符合条件的吐槽
       </div>
-      <ComplaintListItem 
-        v-else
-        v-for="complaint in complaints" 
-        :key="complaint.id" 
-        :complaint="complaint"
-        @click="viewComplaint(complaint.id)"
-      />
+      <div v-else class="complaint-items">
+        <div v-for="complaint in complaints.length ? complaints : oldComplaints" 
+             :key="complaint.id" 
+             class="complaint-item-wrapper">
+          <ComplaintListItem 
+            :complaint="complaint"
+            @click="viewComplaint(complaint.id)"
+          />
+        </div>
+      </div>
       
       <!-- 分页器 -->
       <div v-if="totalCount > 0" class="pagination">
@@ -253,7 +281,7 @@ onMounted(() => {
   font-size: 14px;
   color: #333;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .filter-tag:hover {
@@ -330,5 +358,17 @@ onMounted(() => {
   .filters {
     padding: 15px;
   }
+}
+
+.complaint-items {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-height: 200px; /* 保持最小高度，减少布局跳动 */
+  position: relative;
+}
+
+.complaint-item-wrapper {
+  /* 不添加额外的动画效果 */
 }
 </style> 

@@ -80,24 +80,24 @@ onMounted(() => {
 <template>
   <div class="article-view">
     <div v-if="article" class="article-container">
-      <h1 class="title fade-in">{{ article.title }}</h1>
+      <h1 class="title">{{ article.title }}</h1>
       
-      <div class="meta fade-in" style="animation-delay: 0.1s">
+      <div class="meta">
         <span class="date">{{ article.date }}</span>
         <span class="category" v-if="article.category">分类: {{ article.category }}</span>
         <span class="views"><i class="views-icon"></i>{{ article.viewCount || 0 }}</span>
       </div>
       
-      <div class="tags fade-in" style="animation-delay: 0.2s" v-if="article.tags && article.tags.length">
+      <div class="tags" v-if="article.tags && article.tags.length">
         <span v-for="tag in article.tags" :key="tag" class="tag">{{ tag }}</span>
       </div>
       
-      <div class="content fade-in markdown-body" style="animation-delay: 0.3s" v-html="md.render(article.content || '')"></div>
+      <div class="content markdown-body" v-html="md.render(article.content || '')"></div>
     </div>
-    <div v-else-if="loading" class="loading fade-in">
+    <div v-else-if="loading" class="loading">
       加载中...
     </div>
-    <div v-else class="error fade-in">
+    <div v-else class="error">
       文章不存在或已被删除
     </div>
   </div>
@@ -259,22 +259,6 @@ onMounted(() => {
 
 .error {
   color: #f56c6c;
-}
-
-/* 淡入动画 */
-.fade-in {
-  animation: fadeIn 0.8s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 @media (max-width: 768px) {

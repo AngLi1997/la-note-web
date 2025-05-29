@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch, inject } from 'vue'
+import { ref, onMounted, computed, watch, inject, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ArticleListItem from '../components/ArticleListItem.vue'
 
@@ -33,6 +33,15 @@ const pagination = computed(() => ({
 // 统计每个标签的文章数量
 const tagCounts = ref({})
 
+// 添加新的标志，区分初始加载和切换加载
+const initialLoading = ref(false)
+const switchLoading = ref(false)
+const isDataSwitching = ref(false)
+const silentLoading = ref(true)
+
+// 添加一个变量记录是否首次加载
+const hasAnimated = ref(false)
+
 const viewArticle = (id) => {
   router.push({ name: 'article', params: { id } })
 }
@@ -42,7 +51,15 @@ const currentTag = ref(null)
 
 // 获取文章列表
 const fetchArticles = async () => {
-  loading.value = true
+  const isInitial = !articles.value.length
+  
+  if (isInitial && !silentLoading.value) {
+    initialLoading.value = true
+  } else if (!isInitial) {
+    switchLoading.value = true
+    isDataSwitching.value = true
+  }
+  
   try {
     // 构建查询参数
     const params = {
@@ -61,14 +78,15 @@ const fetchArticles = async () => {
     }
     
     const response = await api.article.getArticlesList(params)
-    console.log('文章列表响应数据:', response) // 添加日志查看响应结构
     
     // 处理不同的响应结构
+    let newArticles = []
+    
     if (response) {
       if (response.code === 200 && response.data) {
         // 处理格式: {code: 200, msg: "success", data: { pageNum, pageSize, total, pages, list: [] }}
         if (response.data.list) {
-          articles.value = response.data.list.map(article => {
+          newArticles = response.data.list.map(article => {
             // 处理日期格式，确保有文章日期字段
             return {
               ...article,
@@ -79,7 +97,7 @@ const fetchArticles = async () => {
         }
         // 标准响应格式: { code: 200, data: { records: [], total: 0 } }
         else if (response.data.records) {
-          articles.value = response.data.records.map(article => {
+          newArticles = response.data.records.map(article => {
             return {
               ...article,
               date: formatDate(article.createTime || article.updateTime || new Date())
@@ -89,7 +107,7 @@ const fetchArticles = async () => {
         } 
         // 格式: { code: 200, data: [] }
         else if (Array.isArray(response.data)) {
-          articles.value = response.data.map(article => {
+          newArticles = response.data.map(article => {
             return {
               ...article,
               date: formatDate(article.createTime || article.updateTime || new Date())
@@ -100,7 +118,7 @@ const fetchArticles = async () => {
       } 
       // 直接返回数组的格式
       else if (Array.isArray(response)) {
-        articles.value = response.map(article => {
+        newArticles = response.map(article => {
           return {
             ...article,
             date: formatDate(article.createTime || article.updateTime || new Date())
@@ -111,22 +129,34 @@ const fetchArticles = async () => {
       // 其他格式，兼容处理
       else if (typeof response === 'object') {
         const possibleData = response.records || response.list || response.items || response.content || [];
-        articles.value = Array.isArray(possibleData) ? possibleData.map(article => {
+        newArticles = Array.isArray(possibleData) ? possibleData.map(article => {
           return {
             ...article,
             date: formatDate(article.createTime || article.updateTime || new Date())
           };
         }) : [];
-        totalCount.value = response.total || response.totalCount || response.count || articles.value.length || 0;
+        totalCount.value = response.total || response.totalCount || response.count || newArticles.length || 0;
       }
       
-      console.log('处理后的文章数据:', articles.value); // 添加日志查看处理后的数据
+      // 使用nextTick确保DOM更新后再替换数据
+      nextTick(() => {
+        // 替换数据，一次性更新避免多次重绘
+        articles.value = newArticles
+        // 首次加载后标记动画已播放
+        hasAnimated.value = true
+      })
     }
   } catch (error) {
     console.error('获取文章列表失败', error);
     articles.value = [];
   } finally {
-    loading.value = false;
+    // 延迟关闭加载状态
+    setTimeout(() => {
+      initialLoading.value = false;
+      switchLoading.value = false;
+      isDataSwitching.value = false;
+      silentLoading.value = false;
+    }, 300);
   }
 }
 
@@ -192,12 +222,15 @@ const handlePageChange = (page) => {
   currentPage.value = page
 }
 
+// 设置分类，不显示加载状态
 const setCategory = (category) => {
+  if (category === currentCategory.value) return
   currentCategory.value = category
   currentTag.value = null // 切换分类时清除标签筛选
   currentPage.value = 1   // 重置为第一页
 }
 
+// 设置标签，不显示加载状态
 const setTag = (tag) => {
   currentTag.value = tag === currentTag.value ? null : tag
   currentPage.value = 1   // 重置为第一页
@@ -224,6 +257,7 @@ watch([() => currentCategory.value, () => currentTag.value, () => currentPage.va
 onMounted(() => {
   fetchCategories()
   fetchTags()
+  silentLoading.value = true
 })
 </script>
 
@@ -249,19 +283,41 @@ onMounted(() => {
       
       <!-- 文章列表 -->
       <div class="articles-container">
-        <div v-if="loading" class="loading-state">
-          加载中...
+        <div v-if="silentLoading" class="skeleton-container">
+          <div v-for="i in 3" :key="i" class="skeleton-item">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-content"></div>
+            <div class="skeleton-footer"></div>
+          </div>
         </div>
-        <div v-else-if="articles.length === 0" class="no-articles">
-          没有找到符合条件的文章
+        
+        <div v-else-if="initialLoading && !silentLoading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>正在加载文章...</p>
         </div>
-        <ArticleListItem 
-          v-else
-          v-for="article in articles" 
-          :key="article.id" 
-          :article="article"
-          @click="viewArticle(article.id)"
-        />
+        
+        <div v-else-if="articles.length === 0 && !isDataSwitching && !silentLoading" class="no-articles">
+          <div class="empty-icon">📄</div>
+          <p>没有找到符合条件的文章</p>
+        </div>
+        
+        <div 
+          v-else-if="articles.length > 0"
+          class="article-list"
+          :class="{ 'switching': switchLoading }"
+        >
+          <div 
+            v-for="article in articles" 
+            :key="article.id" 
+            class="article-item"
+            :class="{ 'with-animation': !hasAnimated }"
+          >
+            <ArticleListItem 
+              :article="article"
+              @click="viewArticle(article.id)"
+            />
+          </div>
+        </div>
         
         <!-- 分页器 -->
         <div v-if="totalCount > 0" class="pagination">
@@ -377,17 +433,91 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  min-height: 600px; /* 最小高度约束 */
+  position: relative;
+  overflow: hidden; /* 防止溢出内容导致的闪烁 */
 }
 
+.article-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  position: relative;
+  min-height: 450px; /* 确保列表也有最小高度 */
+}
+
+/* 文章项容器 - 默认无动画 */
+.article-item {
+  transition: opacity 0.2s ease;
+}
+
+/* 只有带with-animation类的元素才应用动画 */
+.article-item.with-animation {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* 简单的淡入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 加载状态 */
 .loading-state,
 .no-articles {
   background-color: white;
   border-radius: 8px;
-  padding: 30px;
+  padding: 40px 30px;
   text-align: center;
   color: #666;
   font-size: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #11754b;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.empty-icon {
+  font-size: 40px;
+  margin-bottom: 16px;
+}
+
+.no-articles p {
+  color: #888;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 页面过渡效果 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 /* 分页器样式 */
@@ -582,5 +712,51 @@ onMounted(() => {
       "articles"
       "sidebar";
   }
+}
+
+/* 骨架屏样式 */
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  min-height: 450px; /* 与article-list保持一致 */
+}
+
+.skeleton-item {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  animation: pulse 1.5s infinite;
+  height: 160px;
+}
+
+.skeleton-header {
+  height: 24px;
+  background-color: #eee;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  width: 70%;
+}
+
+.skeleton-content {
+  height: 80px;
+  background-color: #eee;
+  border-radius: 4px;
+  margin-bottom: 15px;
+}
+
+.skeleton-footer {
+  height: 16px;
+  background-color: #eee;
+  border-radius: 4px;
+  width: 40%;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 </style> 
