@@ -24,13 +24,13 @@ const router = createRouter({
       component: () => import('../views/EssayView.vue')
     },
     {
-      path: '/complaints',
-      name: 'complaints',
+      path: '/moments',
+      name: 'moments',
       component: () => import('../views/ComplaintsView.vue')
     },
     {
-      path: '/complaint/:id',
-      name: 'complaint',
+      path: '/moment/:id',
+      name: 'moment',
       component: () => import('../views/ComplaintDetailView.vue')
     },
     {

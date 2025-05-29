@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from 'vue'
+import { getMoodEmoji } from '../utils/moodUtils'
 
 const props = defineProps({
   complaint: {
@@ -28,18 +29,9 @@ const thumbnailImage = computed(() => {
   return props.complaint.images[0]
 })
 
-// 心情标签对应的表情和颜色
+// 使用导入的getMoodEmoji函数
 const moodEmoji = computed(() => {
-  const moods = {
-    'happy': { emoji: '😄', color: '#4CAF50' },
-    'sad': { emoji: '😢', color: '#2196F3' },
-    'angry': { emoji: '😡', color: '#F44336' },
-    'surprised': { emoji: '😲', color: '#FF9800' },
-    'confused': { emoji: '😕', color: '#9C27B0' },
-    'default': { emoji: '😐', color: '#607D8B' }
-  }
-  
-  return moods[props.complaint.mood] || moods.default
+  return getMoodEmoji(props.complaint.mood)
 })
 </script>
 
@@ -61,7 +53,7 @@ const moodEmoji = computed(() => {
     </div>
     
     <div v-if="thumbnailImage" class="complaint-image">
-      <img :src="thumbnailImage" alt="吐槽配图">
+      <img :src="thumbnailImage" alt="拾光配图">
     </div>
   </div>
 </template>

@@ -35,7 +35,7 @@ const viewComplaint = (id) => {
 const currentType = ref(null)
 const currentMood = ref(null)
 
-// 获取吐槽列表
+// 获取拾光列表
 const fetchComplaints = async () => {
   const isInitial = complaints.value.length === 0
   
@@ -95,7 +95,7 @@ const fetchComplaints = async () => {
       })
     }
   } catch (error) {
-    console.error('获取吐槽列表失败', error)
+    console.error('获取拾光列表失败', error)
     complaints.value = []
   } finally {
     // 延迟关闭加载状态
@@ -166,8 +166,8 @@ onMounted(() => {
 
 <template>
   <div class="complaints-view">
-    <h1 class="page-title fade-in">吐槽天地</h1>
-    <p class="page-description fade-in" style="animation-delay: 0.1s">在这里，你可以看到各种有趣、情绪化的吐槽内容，释放压力，分享心情。</p>
+    <h1 class="page-title fade-in">拾光时刻</h1>
+    <p class="page-description fade-in" style="animation-delay: 0.1s">拾起光阴里的点滴，记录当下。</p>
     
     <!-- 筛选器 -->
     <div class="filters fade-in" style="animation-delay: 0.2s">
@@ -187,10 +187,10 @@ onMounted(() => {
       </div>
     </div>
     
-    <!-- 吐槽列表 -->
+    <!-- 拾光列表 -->
     <div class="complaints-container">
       <div v-if="complaints.length === 0 && !switchLoading && !initialLoading" class="no-complaints fade-in">
-        没有找到符合条件的吐槽
+        没有找到符合条件的拾光
       </div>
       <div v-else class="complaint-items">
         <div 

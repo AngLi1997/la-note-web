@@ -143,11 +143,11 @@ export const authApi = {
 }
 
 /**
- * 吐槽相关API
+ * 拾光相关API
  */
 export const complaintApi = {
   /**
-   * 获取吐槽列表
+   * 获取拾光列表
    * @param {Object} params 查询参数
    * @returns {Promise} 返回请求Promise
    */
@@ -164,8 +164,8 @@ export const complaintApi = {
   },
   
   /**
-   * 获取吐槽详情
-   * @param {string} id 吐槽ID
+   * 获取拾光详情
+   * @param {string} id 拾光ID
    * @returns {Promise} 返回请求Promise
    */
   getComplaintById: (id, instance = axiosInstance) => {

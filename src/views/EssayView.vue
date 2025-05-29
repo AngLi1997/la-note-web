@@ -45,8 +45,8 @@ const posts = ref([
   <div class="posts-view">
     <div class="container">
       <header class="page-header">
-        <h1>吐槽</h1>
-        <p class="subtitle">程序员的日常吐槽集</p>
+        <h1>拾光</h1>
+        <p class="subtitle">记录生活中的美好瞬间</p>
       </header>
       
       <div class="posts-list">

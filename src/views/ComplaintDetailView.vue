@@ -2,6 +2,7 @@
 import { ref, onMounted, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { getMoodEmoji } from '../utils/moodUtils'
 
 // 使用注入的API
 const api = inject('api')
@@ -12,7 +13,7 @@ const complaint = ref(null)
 const loading = ref(true)
 const complaintId = route.params.id
 
-// 获取吐槽详情
+// 获取拾光详情
 const fetchComplaintDetail = async () => {
   loading.value = true
   try {
@@ -20,12 +21,12 @@ const fetchComplaintDetail = async () => {
     if (response.code === 200) {
       complaint.value = response.data
     } else {
-      ElMessage.error(response.msg || '获取吐槽详情失败')
+      ElMessage.error(response.msg || '获取拾光详情失败')
       complaint.value = null
     }
   } catch (error) {
-    console.error('获取吐槽详情失败', error)
-    ElMessage.error('获取吐槽详情失败，请稍后重试')
+    console.error('获取拾光详情失败', error)
+    ElMessage.error('获取拾光详情失败，请稍后重试')
     complaint.value = null
   } finally {
     loading.value = false
@@ -53,25 +54,9 @@ const formatDate = (dateString) => {
   }
 }
 
-// 心情标签对应的表情和颜色
-const getMoodEmoji = (mood) => {
-  const moods = {
-    '开心': { emoji: '😄', color: '#4CAF50' },
-    '悲伤': { emoji: '😢', color: '#2196F3' },
-    '生气': { emoji: '😡', color: '#F44336' },
-    '焦虑': { emoji: '😓', color: '#FF9800' },
-    '无奈': { emoji: '😕', color: '#9C27B0' },
-    '兴奋': { emoji: '🤩', color: '#FF5722' },
-    '疲惫': { emoji: '😪', color: '#795548' },
-    'default': { emoji: '😐', color: '#607D8B' }
-  }
-  
-  return moods[mood] || moods.default
-}
-
 // 返回列表页
 const goBack = () => {
-  router.push({ name: 'complaints' })
+  router.push({ name: 'moments' })
 }
 
 // 页面加载时获取数据
@@ -92,7 +77,7 @@ onMounted(() => {
       </div>
       
       <div v-else-if="!complaint" class="not-found">
-        未找到该吐槽内容
+        未找到该拾光内容
       </div>
       
       <div v-else class="complaint-content">
@@ -120,7 +105,7 @@ onMounted(() => {
               :key="index" 
               class="image-wrapper"
             >
-              <img :src="image" :alt="`吐槽图片${index + 1}`">
+              <img :src="image" :alt="`拾光图片${index + 1}`">
             </div>
           </div>
         </div>

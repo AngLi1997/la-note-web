@@ -39,7 +39,7 @@ const logout = () => {
           </div>
           <div class="stat-item">
             <div class="stat-value">45</div>
-            <div class="stat-label">吐槽数量</div>
+            <div class="stat-label">拾光数量</div>
           </div>
         </div>
       </div>
@@ -51,7 +51,7 @@ const logout = () => {
             <li><a href="#">发布新文章</a></li>
             <li><a href="#">管理文章</a></li>
             <li><a href="#">管理评论</a></li>
-            <li><a href="#">管理吐槽</a></li>
+            <li><a href="#">管理拾光</a></li>
           </ul>
         </div>
         
