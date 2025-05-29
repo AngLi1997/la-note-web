@@ -19,6 +19,7 @@ const pageSize = ref(10)
 const initialLoading = ref(true)
 const switchLoading = ref(false)
 const oldComplaints = ref([])
+const silentLoading = ref(true) // 添加静默加载标志
 
 // 分页信息
 const pagination = computed(() => ({
@@ -38,9 +39,9 @@ const currentMood = ref(null)
 const fetchComplaints = async () => {
   const isInitial = complaints.value.length === 0
   
-  if (isInitial) {
+  if (isInitial && !silentLoading.value) {
     initialLoading.value = true
-  } else {
+  } else if (!isInitial) {
     // 切换标签时，保存旧数据并设置切换状态
     switchLoading.value = true
     oldComplaints.value = [...complaints.value]
@@ -101,6 +102,7 @@ const fetchComplaints = async () => {
     setTimeout(() => {
       initialLoading.value = false
       switchLoading.value = false
+      silentLoading.value = false // 关闭静默加载状态
     }, 300)
   }
 }
@@ -158,6 +160,7 @@ watch([() => currentType.value, () => currentMood.value, () => currentPage.value
 
 // 页面加载时获取数据
 onMounted(() => {
+  silentLoading.value = true // 设置首次加载为静默模式
   fetchComplaints()
   fetchMoods()
 })
@@ -188,11 +191,17 @@ onMounted(() => {
     
     <!-- 吐槽列表 -->
     <div class="complaints-container">
-      <div v-if="initialLoading" class="loading-state">
+      <div v-if="initialLoading && !silentLoading" class="loading-state">
         加载中...
       </div>
-      <div v-else-if="complaints.length === 0 && !switchLoading" class="no-complaints">
+      <div v-else-if="complaints.length === 0 && !switchLoading && !silentLoading" class="no-complaints">
         没有找到符合条件的吐槽
+      </div>
+      <div v-else-if="silentLoading" class="skeleton-container">
+        <div v-for="i in 3" :key="i" class="skeleton-item">
+          <div class="skeleton-header"></div>
+          <div class="skeleton-content"></div>
+        </div>
       </div>
       <div v-else class="complaint-items">
         <div v-for="complaint in complaints.length ? complaints : oldComplaints" 
@@ -370,5 +379,41 @@ onMounted(() => {
 
 .complaint-item-wrapper {
   /* 不添加额外的动画效果 */
+}
+
+/* 骨架屏样式 */
+.skeleton-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  min-height: 200px;
+}
+
+.skeleton-item {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-header {
+  height: 24px;
+  background-color: #eee;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  width: 70%;
+}
+
+.skeleton-content {
+  height: 80px;
+  background-color: #eee;
+  border-radius: 4px;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 </style> 
