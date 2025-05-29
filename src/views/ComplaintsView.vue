@@ -19,7 +19,7 @@ const pageSize = ref(10)
 const initialLoading = ref(true)
 const switchLoading = ref(false)
 const oldComplaints = ref([])
-const silentLoading = ref(true) // 添加静默加载标志
+const silentLoading = ref(false) // 移除静默加载，改用fadeIn动画
 
 // 分页信息
 const pagination = computed(() => ({
@@ -39,9 +39,9 @@ const currentMood = ref(null)
 const fetchComplaints = async () => {
   const isInitial = complaints.value.length === 0
   
-  if (isInitial && !silentLoading.value) {
+  if (isInitial) {
     initialLoading.value = true
-  } else if (!isInitial) {
+  } else {
     // 切换标签时，保存旧数据并设置切换状态
     switchLoading.value = true
     oldComplaints.value = [...complaints.value]
@@ -102,7 +102,6 @@ const fetchComplaints = async () => {
     setTimeout(() => {
       initialLoading.value = false
       switchLoading.value = false
-      silentLoading.value = false // 关闭静默加载状态
     }, 300)
   }
 }
@@ -160,7 +159,6 @@ watch([() => currentType.value, () => currentMood.value, () => currentPage.value
 
 // 页面加载时获取数据
 onMounted(() => {
-  silentLoading.value = true // 设置首次加载为静默模式
   fetchComplaints()
   fetchMoods()
 })
@@ -168,11 +166,11 @@ onMounted(() => {
 
 <template>
   <div class="complaints-view">
-    <h1 class="page-title">吐槽天地</h1>
-    <p class="page-description">在这里，你可以看到各种有趣、情绪化的吐槽内容，释放压力，分享心情。</p>
+    <h1 class="page-title fade-in">吐槽天地</h1>
+    <p class="page-description fade-in" style="animation-delay: 0.1s">在这里，你可以看到各种有趣、情绪化的吐槽内容，释放压力，分享心情。</p>
     
     <!-- 筛选器 -->
-    <div class="filters">
+    <div class="filters fade-in" style="animation-delay: 0.2s">
       <div class="filter-section">
         <h3 class="filter-title">心情标签</h3>
         <div class="filter-tags">
@@ -191,22 +189,16 @@ onMounted(() => {
     
     <!-- 吐槽列表 -->
     <div class="complaints-container">
-      <div v-if="initialLoading && !silentLoading" class="loading-state">
-        加载中...
-      </div>
-      <div v-else-if="complaints.length === 0 && !switchLoading && !silentLoading" class="no-complaints">
+      <div v-if="complaints.length === 0 && !switchLoading && !initialLoading" class="no-complaints fade-in">
         没有找到符合条件的吐槽
       </div>
-      <div v-else-if="silentLoading" class="skeleton-container">
-        <div v-for="i in 3" :key="i" class="skeleton-item">
-          <div class="skeleton-header"></div>
-          <div class="skeleton-content"></div>
-        </div>
-      </div>
       <div v-else class="complaint-items">
-        <div v-for="complaint in complaints.length ? complaints : oldComplaints" 
-             :key="complaint.id" 
-             class="complaint-item-wrapper">
+        <div 
+          v-for="(complaint, index) in complaints.length ? complaints : oldComplaints" 
+          :key="complaint.id" 
+          class="complaint-item-wrapper fade-in"
+          :style="{ 'animation-delay': `${0.3 + index * 0.1}s` }"
+        >
           <ComplaintListItem 
             :complaint="complaint"
             @click="viewComplaint(complaint.id)"
@@ -215,7 +207,7 @@ onMounted(() => {
       </div>
       
       <!-- 分页器 -->
-      <div v-if="totalCount > 0" class="pagination">
+      <div v-if="totalCount > 0" class="pagination fade-in" style="animation-delay: 0.6s">
         <button 
           :disabled="currentPage === 1" 
           @click="handlePageChange(currentPage - 1)"
@@ -253,6 +245,23 @@ onMounted(() => {
   font-size: 16px;
   color: #666;
   margin-bottom: 30px;
+}
+
+/* 淡入动画 */
+.fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .filters {
@@ -378,42 +387,6 @@ onMounted(() => {
 }
 
 .complaint-item-wrapper {
-  /* 不添加额外的动画效果 */
-}
-
-/* 骨架屏样式 */
-.skeleton-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  min-height: 200px;
-}
-
-.skeleton-item {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  animation: pulse 1.5s infinite;
-}
-
-.skeleton-header {
-  height: 24px;
-  background-color: #eee;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  width: 70%;
-}
-
-.skeleton-content {
-  height: 80px;
-  background-color: #eee;
-  border-radius: 4px;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  /* 应用淡入动画效果 */
 }
 </style> 

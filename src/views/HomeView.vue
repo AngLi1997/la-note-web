@@ -53,7 +53,7 @@ const tagCounts = ref({})
 const initialLoading = ref(false)
 const switchLoading = ref(false)
 const isDataSwitching = ref(false)
-const silentLoading = ref(true)
+const silentLoading = ref(false)
 
 // 添加一个变量记录是否首次加载
 const hasAnimated = ref(false)
@@ -79,9 +79,9 @@ const currentTag = ref(null)
 const fetchArticles = async () => {
   const isInitial = !articles.value.length
   
-  if (isInitial && !silentLoading.value) {
+  if (isInitial) {
     initialLoading.value = true
-  } else if (!isInitial) {
+  } else {
     switchLoading.value = true
     isDataSwitching.value = true
   }
@@ -181,7 +181,6 @@ const fetchArticles = async () => {
       initialLoading.value = false;
       switchLoading.value = false;
       isDataSwitching.value = false;
-      silentLoading.value = false;
     }, 300);
   }
 }
@@ -296,7 +295,6 @@ onMounted(() => {
   fetchCategories()
   fetchTags()
   fetchSiteSettings()
-  silentLoading.value = true
 })
 </script>
 
@@ -305,7 +303,7 @@ onMounted(() => {
     <!-- 主要内容区域 -->
     <div class="main-container">
       <!-- 横向导航栏 -->
-      <div class="category-nav">
+      <div class="category-nav fade-in" style="animation-delay: 0.1s">
         <div class="nav-item" :class="{ active: currentCategory === 'all' }" @click="setCategory('all')">
           全部
         </div>
@@ -322,20 +320,7 @@ onMounted(() => {
       
       <!-- 文章列表 -->
       <div class="articles-container">
-        <div v-if="silentLoading" class="skeleton-container">
-          <div v-for="i in 3" :key="i" class="skeleton-item">
-            <div class="skeleton-header"></div>
-            <div class="skeleton-content"></div>
-            <div class="skeleton-footer"></div>
-          </div>
-        </div>
-        
-        <div v-else-if="initialLoading && !silentLoading" class="loading-state">
-          <div class="loading-spinner"></div>
-          <p>正在加载文章...</p>
-        </div>
-        
-        <div v-else-if="articles.length === 0 && !isDataSwitching && !silentLoading" class="no-articles">
+        <div v-if="articles.length === 0 && !isDataSwitching && !initialLoading" class="no-articles fade-in">
           <div class="empty-icon">📄</div>
           <p>没有找到符合条件的文章</p>
         </div>
@@ -346,10 +331,10 @@ onMounted(() => {
           :class="{ 'switching': switchLoading }"
         >
           <div 
-            v-for="article in articles" 
+            v-for="(article, index) in articles" 
             :key="article.id" 
-            class="article-item"
-            :class="{ 'with-animation': !hasAnimated }"
+            class="article-item fade-in"
+            :style="{ 'animation-delay': `${0.2 + index * 0.1}s` }"
           >
             <ArticleListItem 
               :article="article"
@@ -359,7 +344,7 @@ onMounted(() => {
         </div>
         
         <!-- 分页器 -->
-        <div v-if="totalCount > 0" class="pagination">
+        <div v-if="totalCount > 0" class="pagination fade-in" style="animation-delay: 0.6s">
           <button 
             :disabled="currentPage === 1" 
             @click="handlePageChange(currentPage - 1)"
@@ -381,7 +366,7 @@ onMounted(() => {
       <!-- 侧边栏 -->
       <div class="sidebar">
         <!-- 个人介绍卡片 -->
-        <div class="intro-card">
+        <div class="intro-card fade-in" style="animation-delay: 0.3s">
           <h2>👋 {{ greeting }}！这里是</h2>
           <h1>{{ siteSettings.title }}</h1>
           <p>{{ siteSettings.description }}</p>
@@ -401,7 +386,7 @@ onMounted(() => {
         </div>
         
         <!-- 标签面板 -->
-        <div class="tags-panel">
+        <div class="tags-panel fade-in" style="animation-delay: 0.4s">
           <h3 class="panel-title">标签云</h3>
           <div class="tags-cloud">
             <div 
@@ -438,6 +423,23 @@ onMounted(() => {
     "nav nav"
     "articles sidebar";
   gap: 15px;
+}
+
+/* 淡入动画 */
+.fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 横向导航栏 */
@@ -766,51 +768,5 @@ onMounted(() => {
       "articles"
       "sidebar";
   }
-}
-
-/* 骨架屏样式 */
-.skeleton-container {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-  width: 100%;
-  min-height: 450px; /* 与article-list保持一致 */
-}
-
-.skeleton-item {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  animation: pulse 1.5s infinite;
-  height: 160px;
-}
-
-.skeleton-header {
-  height: 24px;
-  background-color: #eee;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  width: 70%;
-}
-
-.skeleton-content {
-  height: 80px;
-  background-color: #eee;
-  border-radius: 4px;
-  margin-bottom: 15px;
-}
-
-.skeleton-footer {
-  height: 16px;
-  background-color: #eee;
-  border-radius: 4px;
-  width: 40%;
-}
-
-@keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
 }
 </style> 
