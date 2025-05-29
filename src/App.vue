@@ -59,7 +59,9 @@ const closeDropdown = () => {
   <div class="app-container" @click="closeDropdown">
     <header>
       <div class="header-content">
-        <h1 class="logo">Liang's Note</h1>
+        <router-link to="/" class="logo-link">
+          <h1 class="logo">Liang's Note</h1>
+        </router-link>
         <nav class="main-nav">
           <router-link to="/">文章</router-link>
           <router-link to="/complaints">吐槽</router-link>
@@ -129,6 +131,11 @@ header {
   padding: 0 20px;
   height: 60px;
   position: relative;
+}
+
+.logo-link {
+  text-decoration: none;
+  color: white;
 }
 
 .logo {

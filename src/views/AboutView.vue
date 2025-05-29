@@ -52,8 +52,10 @@ onMounted(async () => {
     <!-- 主要内容区域 -->
     <div class="main-content">
       <!-- 页面标题 -->
-      <h1 class="page-title fade-in">关于我</h1>
-      
+      <header class="page-header">
+        <h1 class="page-title fade-in">关于我</h1>
+        <p class="subtitle fade-in" style="animation-delay: 0.15s">交个朋友 (˶˚ ᗨ ˚˶)</p>
+      </header>
       <!-- 个人信息区 -->
       <div class="about-card">
         <div class="author-info">
@@ -116,11 +118,22 @@ onMounted(async () => {
   gap: 30px;
 }
 
+.page-header {
+  text-align: center;
+  margin-bottom: 10px;
+}
+
 .page-title {
   font-size: 2rem;
   color: #333;
   margin: 0 0 10px 0;
-  text-align: center;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1.1rem;
+  margin-top: 5px;
+  margin-bottom: 0;
 }
 
 .about-card {
