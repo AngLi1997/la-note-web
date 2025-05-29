@@ -371,7 +371,13 @@ onMounted(() => {
           <p>{{ siteSettings.description }}</p>
           <p>{{ siteSettings.slogan }}</p>
           <div class="social-links">
-            <a v-for="link in siteSettings.socialLinks" :key="link" :href="link" class="social-link"></a>
+            <a v-for="link in siteSettings.socialLinks" 
+               :key="link" 
+               :href="link" 
+               target="_blank"
+               class="social-link">
+              <img v-if="link.includes('github')" src="@/assets/icons/github.svg" alt="github" class="social-icon">
+            </a>
           </div>
           <div class="avatar">
             <img :src="siteSettings.avatar" alt="头像">
@@ -620,9 +626,19 @@ onMounted(() => {
   height: 36px;
   border-radius: 50%;
   background-color: rgba(255, 255, 255, 0.2);
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  margin-right: 10px;
+}
+
+.social-link:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
 }
 
 .avatar {
