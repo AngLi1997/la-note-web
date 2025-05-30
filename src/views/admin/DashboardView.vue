@@ -17,6 +17,7 @@ onMounted(() => {
 
 const handleLogout = () => {
   logout();
+  userInfo.value = null; // 确保本地状态也被清除
   router.push('/');
 };
 </script>

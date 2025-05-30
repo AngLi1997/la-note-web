@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, computed, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { isLoggedIn, logout, getUserInfo } from './utils/auth.js';
 
 const router = useRouter();
+const route = useRoute();
 const loggedIn = ref(false);
 const userInfo = ref(null);
 
@@ -12,11 +13,18 @@ const checkLoginStatus = () => {
   loggedIn.value = isLoggedIn();
   if (loggedIn.value) {
     userInfo.value = getUserInfo();
+  } else {
+    userInfo.value = null;
   }
 };
 
 // 页面加载时检查登录状态
 onMounted(() => {
+  checkLoginStatus();
+});
+
+// 监听路由变化，重新检查登录状态
+watch(() => route.path, () => {
   checkLoginStatus();
 });
 
@@ -37,6 +45,11 @@ const handleAdminClick = () => {
     router.push('/admin/login');
   }
 };
+
+// 获取用户头像或默认头像
+const userAvatar = computed(() => {
+  return userInfo.value && userInfo.value.avatar ? userInfo.value.avatar : null;
+});
 </script>
 
 <template>
@@ -53,11 +66,17 @@ const handleAdminClick = () => {
           <router-link to="/about">关于</router-link>
         </nav>
         <div class="admin-login">
-          <button class="admin-button" @click="handleAdminClick">
-            {{ loggedIn ? '管理面板' : '管理员登录' }}
-          </button>
-          <button v-if="loggedIn" class="logout-button" @click="handleLogout">
-            退出
+          <button class="admin-button" @click="handleAdminClick" :class="{ 'admin-avatar-button': loggedIn, 'admin-icon-button': !loggedIn }">
+            <template v-if="loggedIn">
+              <img v-if="userAvatar" :src="userAvatar" alt="用户头像" class="user-avatar" />
+              <span v-else class="avatar-placeholder">{{ userInfo?.nickname?.charAt(0) || userInfo?.username?.charAt(0) || 'U' }}</span>
+            </template>
+            <template v-else>
+              <svg class="user-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" stroke="#11754b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18 20C18 17.7909 15.3137 16 12 16C8.68629 16 6 17.7909 6 20" stroke="#11754b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </template>
           </button>
         </div>
       </div>
@@ -161,38 +180,63 @@ header {
 }
 
 .admin-button {
-  background-color: white;
-  color: #11754b;
   border: none;
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.admin-button:hover {
+.admin-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.admin-icon-button:hover {
   background-color: #f0f0f0;
 }
 
-.logout-button {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-  padding: 8px 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.admin-avatar-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  overflow: hidden;
 }
 
-.logout-button:hover {
-  background-color: rgba(255, 255, 255, 0.3);
+.admin-avatar-button:hover {
+  opacity: 0.9;
 }
 
 .user-icon {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+}
+
+.user-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e1e1e1;
+  color: #11754b;
+  font-weight: bold;
+  font-size: 16px;
 }
 
 main {
