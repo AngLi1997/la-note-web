@@ -117,6 +117,34 @@ export const articleApi = {
    */
   getTags: (instance = axiosInstance) => {
     return instance.get('/articles/tags')
+  },
+  
+  /**
+   * 创建文章
+   * @param {Object} data 文章数据
+   * @returns {Promise} 返回请求Promise
+   */
+  createArticle: (data, instance = axiosInstance) => {
+    return instance.post('/articles', data)
+  },
+  
+  /**
+   * 更新文章
+   * @param {string} id 文章ID
+   * @param {Object} data 文章数据
+   * @returns {Promise} 返回请求Promise
+   */
+  updateArticle: (id, data, instance = axiosInstance) => {
+    return instance.put(`/articles/${id}`, data)
+  },
+  
+  /**
+   * 删除文章
+   * @param {string} id 文章ID
+   * @returns {Promise} 返回请求Promise
+   */
+  deleteArticle: (id, instance = axiosInstance) => {
+    return instance.delete(`/articles/${id}`)
   }
 }
 
