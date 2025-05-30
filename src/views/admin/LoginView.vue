@@ -1,6 +1,7 @@
 <script setup>
 import { ref, inject } from 'vue';
 import { useRouter } from 'vue-router';
+import { setToken, setUserInfo } from '../../utils/auth.js';
 
 // 使用注入的API
 const api = inject('api')
@@ -20,34 +21,49 @@ const login = async () => {
   errorMessage.value = '';
 
   try {
+    console.log('开始登录请求...');
+    
     // 调用后端登录接口
     const response = await api.auth.login({
       username: username.value,
       password: password.value
     });
     
+    console.log('登录响应:', response);
+    
     // 处理登录成功的响应
     if (response.code === 200) {
+      console.log('登录成功，准备存储token和用户信息');
+      
       // 保存token和用户信息
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('userInfo', JSON.stringify(response.data.userInfo));
+      setToken(response.data.token);
+      setUserInfo(response.data.userInfo);
+      
+      console.log('登录状态已保存，准备跳转到仪表板');
       
       // 登录成功后跳转到管理员仪表板
       router.push('/admin/dashboard');
+      
+      console.log('路由跳转已触发');
     } else {
       // 处理业务逻辑错误
-      errorMessage.value = response.message || '登录失败';
+      errorMessage.value = response.msg || '登录失败';
+      console.error('登录业务错误:', response.msg);
     }
   } catch (error) {
     // 处理网络错误或服务器错误
+    console.error('登录错误完整信息:', error);
+    
     if (error.response) {
-      errorMessage.value = error.response.data.message || '登录失败，请检查用户名和密码';
+      errorMessage.value = error.response.data.msg || '登录失败，请检查用户名和密码';
+      console.error('服务器响应错误:', error.response.data);
     } else if (error.request) {
       errorMessage.value = '无法连接到服务器，请检查网络连接';
+      console.error('无服务器响应');
     } else {
       errorMessage.value = '登录请求失败，请稍后再试';
+      console.error('请求配置错误');
     }
-    console.error('登录错误:', error);
   } finally {
     isLoading.value = false;
   }

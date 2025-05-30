@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { isLoggedIn } from '../utils/auth.js'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -60,9 +61,8 @@ const router = createRouter({
 // 路由守卫，检查管理员权限
 router.beforeEach((to, from, next) => {
   if (to.matched.some(record => record.meta.requiresAuth)) {
-    // 检查是否有管理员令牌
-    const adminToken = localStorage.getItem('adminToken');
-    if (!adminToken) {
+    // 使用auth.js中的isLoggedIn方法检查登录状态
+    if (!isLoggedIn()) {
       next({ name: 'adminLogin' });
     } else {
       next();

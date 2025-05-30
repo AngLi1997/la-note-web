@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router';
 import { isLoggedIn, logout, getUserInfo } from './utils/auth.js';
 
 const router = useRouter();
-const showDropdown = ref(false);
 const loggedIn = ref(false);
 const userInfo = ref(null);
 
@@ -26,37 +25,22 @@ const handleLogout = () => {
   logout();
   loggedIn.value = false;
   userInfo.value = null;
-  showDropdown.value = false;
   router.push('/');
 };
 
-// 跳转到登录页
-const goToLogin = () => {
-  showDropdown.value = false;
-  router.push('/admin/login');
-};
-
-// 跳转到其他页面
-const goToPage = (path) => {
-  showDropdown.value = false;
-  router.push(path);
-};
-
-// 切换下拉菜单显示状态
-const toggleDropdown = () => {
-  // 在打开下拉菜单时重新检查登录状态
-  checkLoginStatus();
-  showDropdown.value = !showDropdown.value;
-};
-
-// 点击外部关闭下拉菜单
-const closeDropdown = () => {
-  showDropdown.value = false;
+// 处理管理员按钮点击
+const handleAdminClick = () => {
+  // 根据登录状态决定跳转到仪表板还是登录页
+  if (loggedIn.value) {
+    router.push('/admin/dashboard');
+  } else {
+    router.push('/admin/login');
+  }
 };
 </script>
 
 <template>
-  <div class="app-container" @click="closeDropdown">
+  <div class="app-container">
     <header>
       <div class="header-content">
         <router-link to="/" class="logo-link">
@@ -68,26 +52,13 @@ const closeDropdown = () => {
           <router-link to="/timeline">时间轴</router-link>
           <router-link to="/about">关于</router-link>
         </nav>
-        <div class="admin-login" @click.stop>
-          <div class="user-dropdown">
-            <div class="dropdown-trigger" @click="toggleDropdown">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="user-icon">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </div>
-            <div class="dropdown-menu" v-show="showDropdown">
-              <div v-if="loggedIn">
-                <div class="user-info">{{ userInfo?.username || '管理员' }}</div>
-                <div class="dropdown-item" @click="goToPage('/admin/site-settings')">网站设置</div>
-                <div class="dropdown-item" @click="goToPage('/admin/profile')">个人信息设置</div>
-                <div class="dropdown-item logout" @click="handleLogout">退出登录</div>
-              </div>
-              <div v-else>
-                <div class="dropdown-item" @click="goToLogin">立即登录</div>
-              </div>
-            </div>
-          </div>
+        <div class="admin-login">
+          <button class="admin-button" @click="handleAdminClick">
+            {{ loggedIn ? '管理面板' : '管理员登录' }}
+          </button>
+          <button v-if="loggedIn" class="logout-button" @click="handleLogout">
+            退出
+          </button>
         </div>
       </div>
     </header>
@@ -184,71 +155,39 @@ header {
 
 .admin-login {
   margin-left: auto;
-  width: 100px;
   display: flex;
-  justify-content: flex-end;
-}
-
-.user-dropdown {
-  position: relative;
-}
-
-.dropdown-trigger {
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
+  gap: 10px;
   align-items: center;
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
+}
+
+.admin-button {
+  background-color: white;
+  color: #11754b;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-weight: 500;
+  cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.dropdown-trigger:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.admin-button:hover {
+  background-color: #f0f0f0;
 }
 
-.dropdown-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  background-color: white;
+.logout-button {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 4px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  min-width: 150px;
-  z-index: 1000;
-  overflow: hidden;
-}
-
-.user-info {
-  padding: 12px 16px;
+  padding: 8px 12px;
   font-weight: 500;
-  color: #11754b;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #eee;
-}
-
-.dropdown-item {
-  padding: 12px 16px;
   cursor: pointer;
-  color: #333;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
-.dropdown-item:hover {
-  background-color: #f5f5f5;
-}
-
-.dropdown-item.logout {
-  color: #e53935;
-  border-top: 1px solid #eee;
-}
-
-.dropdown-item.logout:hover {
-  background-color: #ffebee;
+.logout-button:hover {
+  background-color: rgba(255, 255, 255, 0.3);
 }
 
 .user-icon {

@@ -1,12 +1,22 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { logout, getUserInfo } from '../../utils/auth.js';
 
 const router = useRouter();
-const username = ref('管理员');
+const userInfo = ref(null);
 
-const logout = () => {
-  localStorage.removeItem('adminToken');
+onMounted(() => {
+  // 获取用户信息
+  userInfo.value = getUserInfo();
+  if (!userInfo.value) {
+    // 如果没有用户信息，重定向到登录页面
+    router.push('/admin/login');
+  }
+});
+
+const handleLogout = () => {
+  logout();
   router.push('/');
 };
 </script>
@@ -16,8 +26,8 @@ const logout = () => {
     <div class="dashboard-header">
       <h1>管理员仪表板</h1>
       <div class="user-info">
-        <span>欢迎，{{ username }}</span>
-        <button @click="logout" class="logout-button">退出登录</button>
+        <span>欢迎，{{ userInfo?.nickname || userInfo?.username || '管理员' }}</span>
+        <button @click="handleLogout" class="logout-button">退出登录</button>
       </div>
     </div>
     
