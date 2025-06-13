@@ -430,7 +430,8 @@ const fetchComplaints = async () => {
     const response = await api.complaint.getComplaintsList({
       pageNum: complaintCurrentPage.value,
       pageSize: complaintPageSize.value,
-      mood: ''
+      mood: '',
+      showAll: true // 管理页面需要查看所有状态的拾光，包括草稿
     });
     
     if (response && response.code === 200) {
