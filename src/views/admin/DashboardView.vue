@@ -129,14 +129,20 @@ const submitArticleForm = async () => {
       try {
         loading.value = true;
         
-        // 创建文章
-        const response = await api.article.createArticle({
+        // 创建文章 - 确保status值正确传递
+        // 注意：status应该是数字类型，与后端实体类保持一致
+        const articleData = {
           ...articleForm,
+          status: Number(articleForm.status), // 确保是数字类型
           tags: articleForm.tags // 直接使用数组
-        });
+        };
+        
+        console.log('提交文章数据:', articleData); // 调试用
+        
+        const response = await api.article.createArticle(articleData);
         
         if (response && response.code === 200) {
-          ElMessage.success('文章创建成功');
+          ElMessage.success(articleForm.status === 1 ? '文章已发布成功' : '文章已保存为草稿');
           articleDialogVisible.value = false;
           fetchArticles(); // 刷新列表
         } else {
@@ -257,21 +263,32 @@ const handleMenuSelect = (key) => {
               style="width: 100%"
               border
             >
-              <el-table-column prop="id" label="ID" width="80" />
-              <el-table-column prop="title" label="标题" />
+              <el-table-column prop="title" label="标题" width="150" />
+              <el-table-column prop="content" label="内容摘要" min-width="60%">
+                <template #default="scope">
+                  <el-tooltip
+                    class="box-item"
+                    effect="dark"
+                    :content="scope.row.content || '暂无内容'"
+                    placement="top-start"
+                  >
+                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '暂无内容' }}</div>
+                  </el-tooltip>
+                </template>
+              </el-table-column>
               <el-table-column label="发布日期" width="180">
                 <template #default="scope">
                   {{ new Date(scope.row.createTime).toLocaleString() }}
                 </template>
               </el-table-column>
-              <el-table-column label="状态" width="120">
+              <el-table-column label="状态" width="100">
                 <template #default="scope">
                   <el-tag :type="scope.row.status === 1 ? 'success' : 'info'">
                     {{ getStatusText(scope.row.status) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="180">
+              <el-table-column label="操作" width="150">
                 <template #default="scope">
                   <el-button size="small" type="primary">编辑</el-button>
                   <el-button 
@@ -557,5 +574,11 @@ const handleMenuSelect = (key) => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+.summary-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style> 

@@ -94,7 +94,8 @@ const fetchArticles = async () => {
     // 构建查询参数
     const params = {
       page: currentPage.value,
-      size: pageSize.value
+      size: pageSize.value,
+      status: 1 // 只查已发布
     }
     
     // 添加分类筛选
