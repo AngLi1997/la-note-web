@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, computed } from 'vue'
 
 const props = defineProps({
   article: {
@@ -8,24 +8,29 @@ const props = defineProps({
   }
 })
 
+// 检查文章是否有有效的缩略图
+const hasThumbnail = computed(() => {
+  return props.article.thumbnail && typeof props.article.thumbnail === 'string' && props.article.thumbnail.trim() !== '';
+})
+
 defineEmits(['click'])
 </script>
 
 <template>
-  <div class="article-list-item" @click="$emit('click')">
+  <div class="article-list-item" @click="$emit('click')" :class="{ 'no-thumbnail': !hasThumbnail }">
     <div class="article-content">
-      <div class="thumbnail-container" v-if="article.thumbnail">
+      <div v-if="hasThumbnail" class="thumbnail-container">
         <img class="thumbnail" :src="article.thumbnail" :alt="article.title" />
       </div>
       <div class="text-content">
         <h2 class="title">{{ article.title }}</h2>
         <div class="meta">
           <span class="date">{{ article.date }}</span>
-          <span class="category">{{ article.category }}</span>
+          <span class="category" v-if="article.category">{{ article.category }}</span>
         </div>
         <p class="summary">{{ article.summary }}</p>
         <div class="footer">
-          <div class="tags">
+          <div class="tags" v-if="article.tags && article.tags.length">
             <span v-for="tag in article.tags" :key="tag" class="tag">{{ tag }}</span>
           </div>
           <div class="read-more">阅读全文</div>
@@ -51,6 +56,21 @@ defineEmits(['click'])
   background-color: #f9f9f9;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   transform: translateY(-2px);
+}
+
+.article-list-item.no-thumbnail {
+  position: relative;
+}
+
+.article-list-item.no-thumbnail::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(to bottom, #11754b, #88c5aa);
+  border-radius: 8px 0 0 8px;
 }
 
 .article-content {
@@ -141,5 +161,19 @@ defineEmits(['click'])
   color: #3498db;
   font-weight: 500;
   font-size: 14px;
+}
+
+@media (max-width: 600px) {
+  .thumbnail-container {
+    display: none;
+  }
+  
+  .article-content {
+    gap: 0;
+  }
+  
+  .article-list-item.no-thumbnail::before {
+    width: 3px;
+  }
 }
 </style> 

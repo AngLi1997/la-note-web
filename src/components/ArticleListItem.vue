@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineEmits, ref } from 'vue'
+import { defineProps, defineEmits, ref, computed } from 'vue'
 
 const props = defineProps({
   article: {
@@ -8,14 +8,25 @@ const props = defineProps({
   }
 })
 
-const defaultImage = 'https://picsum.photos/seed/placeholder/300/200' // 默认图片
+// 检查文章是否有有效的缩略图
+const hasThumbnail = computed(() => {
+  return props.article.thumbnail && typeof props.article.thumbnail === 'string' && props.article.thumbnail.trim() !== '';
+})
+
+// 处理不同格式的标签（字符串或数组）
+const getArticleTags = (tags) => {
+  if (!tags) return [];
+  if (Array.isArray(tags)) return tags;
+  if (typeof tags === 'string') return tags.split(',').map(tag => tag.trim()).filter(Boolean);
+  return [];
+}
 
 defineEmits(['click'])
 </script>
 
 <template>
-  <div class="article-list-item" @click="$emit('click')">
-    <div class="article-image">
+  <div class="article-list-item" @click="$emit('click')" :class="{ 'no-thumbnail': !hasThumbnail }">
+    <div v-if="hasThumbnail" class="article-image">
       <img :src="article.thumbnail" :alt="article.title"/>
     </div>
     <div class="article-content">
@@ -33,16 +44,6 @@ defineEmits(['click'])
   </div>
 </template>
 
-<script>
-// 处理不同格式的标签（字符串或数组）
-function getArticleTags(tags) {
-  if (!tags) return [];
-  if (Array.isArray(tags)) return tags;
-  if (typeof tags === 'string') return tags.split(',').map(tag => tag.trim()).filter(Boolean);
-  return [];
-}
-</script>
-
 <style scoped>
 .article-list-item {
   display: flex;
@@ -59,6 +60,21 @@ function getArticleTags(tags) {
 .article-list-item:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.article-list-item.no-thumbnail {
+  position: relative;
+}
+
+.article-list-item.no-thumbnail::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(to bottom, #11754b, #88c5aa);
+  border-radius: 8px 0 0 8px;
 }
 
 .article-image {
@@ -151,6 +167,10 @@ function getArticleTags(tags) {
 @media (max-width: 600px) {
   .article-image {
     display: none;
+  }
+  
+  .article-list-item.no-thumbnail::before {
+    width: 3px;
   }
 }
 </style> 

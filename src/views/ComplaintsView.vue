@@ -35,6 +35,19 @@ const viewComplaint = (id) => {
 const currentType = ref(null)
 const currentMood = ref(null)
 
+// 处理文章数据，确保每个文章都有正确的图片信息
+const processComplaintData = (complaint) => {
+  // 检查是否有图片数组且不为空
+  const hasValidImages = complaint.images && Array.isArray(complaint.images) && complaint.images.length > 0
+  
+  return {
+    ...complaint,
+    date: formatDate(complaint.createTime || complaint.updateTime || new Date()),
+    // 确保images属性存在且为数组
+    images: hasValidImages ? complaint.images : []
+  }
+}
+
 // 获取拾光列表
 const fetchComplaints = async () => {
   const isInitial = complaints.value.length === 0
@@ -71,20 +84,10 @@ const fetchComplaints = async () => {
     
     if (response && response.code === 200 && response.data) {
       if (response.data.list) {
-        newComplaints = response.data.list.map(complaint => {
-          return {
-            ...complaint,
-            date: formatDate(complaint.createTime || complaint.updateTime || new Date())
-          }
-        })
+        newComplaints = response.data.list.map(processComplaintData)
         totalCount.value = response.data.total || 0
       } else if (Array.isArray(response.data)) {
-        newComplaints = response.data.map(complaint => {
-          return {
-            ...complaint,
-            date: formatDate(complaint.createTime || complaint.updateTime || new Date())
-          }
-        })
+        newComplaints = response.data.map(processComplaintData)
         totalCount.value = response.data.length
       }
       
@@ -191,6 +194,10 @@ onMounted(() => {
     <div class="complaints-container">
       <div v-if="complaints.length === 0 && !switchLoading && !initialLoading" class="no-complaints fade-in">
         没有找到符合条件的拾光
+      </div>
+      <div v-else-if="initialLoading" class="loading-state fade-in">
+        <div class="loading-spinner"></div>
+        <p>加载中...</p>
       </div>
       <div v-else class="complaint-items">
         <div 
@@ -329,6 +336,22 @@ onMounted(() => {
   color: #666;
   font-size: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(17, 117, 75, 0.2);
+  border-top-color: #11754b;
+  border-radius: 50%;
+  margin: 0 auto 15px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 分页器样式 */

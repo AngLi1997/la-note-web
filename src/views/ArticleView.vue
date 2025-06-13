@@ -35,6 +35,13 @@ const formatDate = (dateString) => {
   }
 }
 
+// 检查文章是否有图片
+const hasImages = (content) => {
+  if (!content) return false
+  // 简单检查Markdown中是否包含图片语法
+  return /!\[.*?\]\(.*?\)/.test(content) || /<img.*?>/.test(content)
+}
+
 // 获取文章详情
 const fetchArticle = async () => {
   const id = route.params.id
@@ -56,7 +63,8 @@ const fetchArticle = async () => {
     if (response && response.code === 200) {
       article.value = {
         ...response.data,
-        date: formatDate(response.data.createTime || response.data.updateTime)
+        date: formatDate(response.data.createTime || response.data.updateTime),
+        hasImages: hasImages(response.data.content)
       }
     } else {
       ElMessage.error(response?.msg || '获取文章失败')
@@ -79,7 +87,7 @@ onMounted(() => {
 
 <template>
   <div class="article-view">
-    <div v-if="article" class="article-container">
+    <div v-if="article" class="article-container" :class="{'no-images': !article.hasImages}">
       <h1 class="title">{{ article.title }}</h1>
       
       <div class="meta">
@@ -117,6 +125,21 @@ onMounted(() => {
   border-radius: 8px;
   padding: 30px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.article-container.no-images {
+  position: relative;
+}
+
+.article-container.no-images::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, #11754b, #88c5aa);
+  border-radius: 8px 8px 0 0;
 }
 
 .title {

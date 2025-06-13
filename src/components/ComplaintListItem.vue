@@ -33,10 +33,15 @@ const thumbnailImage = computed(() => {
 const moodEmoji = computed(() => {
   return getMoodEmoji(props.complaint.mood)
 })
+
+// 判断是否有图片
+const hasImage = computed(() => {
+  return thumbnailImage.value !== null
+})
 </script>
 
 <template>
-  <div class="complaint-item" @click="handleClick">
+  <div class="complaint-item" @click="handleClick" :class="{ 'no-image': !hasImage }">
     <div class="complaint-content">
       <div class="complaint-header">
         <div class="complaint-mood" :style="{ backgroundColor: moodEmoji.color }">
@@ -52,7 +57,7 @@ const moodEmoji = computed(() => {
       </div>
     </div>
     
-    <div v-if="thumbnailImage" class="complaint-image">
+    <div v-if="hasImage" class="complaint-image">
       <img :src="thumbnailImage" alt="拾光配图">
     </div>
   </div>
@@ -74,6 +79,21 @@ const moodEmoji = computed(() => {
 .complaint-item:hover {
   transform: translateY(-3px);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.complaint-item.no-image {
+  position: relative;
+}
+
+.complaint-item.no-image::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(to bottom, #11754b, #88c5aa);
+  border-radius: 8px 0 0 8px;
 }
 
 .complaint-content {
@@ -137,6 +157,7 @@ const moodEmoji = computed(() => {
   border-radius: 6px;
   overflow: hidden;
   margin-left: 15px;
+  flex-shrink: 0;
 }
 
 .complaint-image img {
@@ -148,6 +169,23 @@ const moodEmoji = computed(() => {
 @media (max-width: 600px) {
   .complaint-image {
     display: none;
+  }
+  
+  .complaint-item {
+    padding: 12px;
+  }
+  
+  .complaint-title {
+    font-size: 16px;
+  }
+  
+  .complaint-text {
+    -webkit-line-clamp: 2;
+    font-size: 13px;
+  }
+  
+  .complaint-item.no-image::before {
+    width: 3px;
   }
 }
 </style> 

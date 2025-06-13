@@ -93,8 +93,8 @@ const fetchArticles = async () => {
   try {
     // 构建查询参数
     const params = {
-      page: currentPage.value,
-      size: pageSize.value,
+      pageNum: currentPage.value,
+      pageSize: pageSize.value,
       status: 1 // 只查已发布
     }
     
@@ -121,7 +121,9 @@ const fetchArticles = async () => {
             // 处理日期格式，确保有文章日期字段
             return {
               ...article,
-              date: formatDate(article.createTime || article.updateTime || new Date())
+              date: formatDate(article.createTime || article.updateTime || new Date()),
+              // 确保thumbnail字段存在且有效
+              thumbnail: article.thumbnail || ''
             };
           });
           totalCount.value = response.data.total || 0;
@@ -131,7 +133,8 @@ const fetchArticles = async () => {
           newArticles = response.data.records.map(article => {
             return {
               ...article,
-              date: formatDate(article.createTime || article.updateTime || new Date())
+              date: formatDate(article.createTime || article.updateTime || new Date()),
+              thumbnail: article.thumbnail || ''
             };
           });
           totalCount.value = response.data.total || 0;
@@ -141,7 +144,8 @@ const fetchArticles = async () => {
           newArticles = response.data.map(article => {
             return {
               ...article,
-              date: formatDate(article.createTime || article.updateTime || new Date())
+              date: formatDate(article.createTime || article.updateTime || new Date()),
+              thumbnail: article.thumbnail || ''
             };
           });
           totalCount.value = response.data.length;
@@ -152,7 +156,8 @@ const fetchArticles = async () => {
         newArticles = response.map(article => {
           return {
             ...article,
-            date: formatDate(article.createTime || article.updateTime || new Date())
+            date: formatDate(article.createTime || article.updateTime || new Date()),
+            thumbnail: article.thumbnail || ''
           };
         });
         totalCount.value = response.length;
@@ -163,7 +168,8 @@ const fetchArticles = async () => {
         newArticles = Array.isArray(possibleData) ? possibleData.map(article => {
           return {
             ...article,
-            date: formatDate(article.createTime || article.updateTime || new Date())
+            date: formatDate(article.createTime || article.updateTime || new Date()),
+            thumbnail: article.thumbnail || ''
           };
         }) : [];
         totalCount.value = response.total || response.totalCount || response.count || newArticles.length || 0;
