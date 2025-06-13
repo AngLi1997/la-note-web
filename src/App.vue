@@ -7,6 +7,7 @@ const router = useRouter();
 const route = useRoute();
 const loggedIn = ref(false);
 const userInfo = ref(null);
+const mobileMenuOpen = ref(false);
 
 // 检查登录状态
 const checkLoginStatus = () => {
@@ -26,6 +27,8 @@ onMounted(() => {
 // 监听路由变化，重新检查登录状态
 watch(() => route.path, () => {
   checkLoginStatus();
+  // 路由变化时关闭移动菜单
+  mobileMenuOpen.value = false;
 });
 
 // 处理登出
@@ -46,6 +49,11 @@ const handleAdminClick = () => {
   }
 };
 
+// 切换移动菜单
+const toggleMobileMenu = () => {
+  mobileMenuOpen.value = !mobileMenuOpen.value;
+};
+
 // 获取用户头像或默认头像
 const userAvatar = computed(() => {
   return userInfo.value && userInfo.value.avatar ? userInfo.value.avatar : null;
@@ -59,12 +67,22 @@ const userAvatar = computed(() => {
         <router-link to="/" class="logo-link">
           <h1 class="logo">Liang's Note</h1>
         </router-link>
-        <nav class="main-nav">
-          <router-link to="/">文章</router-link>
-          <router-link to="/moments">拾光</router-link>
-          <router-link to="/timeline">时间轴</router-link>
-          <router-link to="/about">关于</router-link>
+        
+        <!-- 移动端菜单按钮 -->
+        <button class="mobile-menu-button" @click="toggleMobileMenu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        
+        <!-- 导航菜单 - 在移动端会被隐藏并通过菜单按钮控制显示 -->
+        <nav class="main-nav" :class="{ 'mobile-menu-open': mobileMenuOpen }">
+          <router-link to="/" @click="mobileMenuOpen = false">文章</router-link>
+          <router-link to="/moments" @click="mobileMenuOpen = false">拾光</router-link>
+          <router-link to="/timeline" @click="mobileMenuOpen = false">时间轴</router-link>
+          <router-link to="/about" @click="mobileMenuOpen = false">关于</router-link>
         </nav>
+        
         <div class="admin-login">
           <button class="admin-button" @click="handleAdminClick" :class="{ 'admin-avatar-button': loggedIn, 'admin-icon-button': !loggedIn }">
             <template v-if="loggedIn">
@@ -110,6 +128,8 @@ header {
   color: white;
   padding: 0;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 100;
 }
 
 .header-content {
@@ -239,6 +259,28 @@ header {
   font-size: 16px;
 }
 
+/* 移动端菜单按钮样式 */
+.mobile-menu-button {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 10;
+}
+
+.mobile-menu-button span {
+  width: 100%;
+  height: 2px;
+  background-color: white;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
 main {
   flex: 1;
   padding: 0;
@@ -250,6 +292,68 @@ footer {
   background-color: #f5f5f5;
   text-align: center;
   color: #666;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .logo {
+    width: auto;
+  }
+  
+  .mobile-menu-button {
+    display: flex;
+    order: 3;
+    margin-left: 20px;
+  }
+  
+  .main-nav {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    flex-direction: column;
+    background-color: #11754b;
+    padding: 0;
+    gap: 0;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.3s ease;
+    transform: none;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+  }
+  
+  .main-nav.mobile-menu-open {
+    height: auto;
+    opacity: 1;
+    visibility: visible;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .main-nav a {
+    padding: 15px 20px;
+    width: 100%;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .main-nav a.router-link-active::after {
+    display: none;
+  }
+  
+  .main-nav a.router-link-active {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .header-content {
+    justify-content: space-between;
+  }
+  
+  .admin-login {
+    margin-left: 0;
+    order: 2;
+  }
 }
 </style>
 
