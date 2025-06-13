@@ -198,6 +198,34 @@ export const complaintApi = {
    */
   getComplaintById: (id, instance = axiosInstance) => {
     return instance.get(`/complaints/${id}`)
+  },
+  
+  /**
+   * 创建拾光
+   * @param {Object} data 拾光数据
+   * @returns {Promise} 返回请求Promise
+   */
+  createComplaint: (data, instance = axiosInstance) => {
+    return instance.post('/complaints', data)
+  },
+  
+  /**
+   * 更新拾光
+   * @param {string} id 拾光ID
+   * @param {Object} data 拾光数据
+   * @returns {Promise} 返回请求Promise
+   */
+  updateComplaint: (id, data, instance = axiosInstance) => {
+    return instance.put(`/complaints/${id}`, data)
+  },
+  
+  /**
+   * 删除拾光
+   * @param {string} id 拾光ID
+   * @returns {Promise} 返回请求Promise
+   */
+  deleteComplaint: (id, instance = axiosInstance) => {
+    return instance.delete(`/complaints/${id}`)
   }
 }
 
