@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, reactive, inject, nextTick } from 'vue';
+import { ref, onMounted, reactive, inject, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { logout, getUserInfo, getToken } from '../../utils/auth.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -72,6 +72,28 @@ const menuItems = [
   { key: 'profile', label: '个人信息管理', icon: 'User' },
   { key: 'site', label: '网站信息管理', icon: 'Setting' },
 ];
+
+// 时间轴管理相关
+const timelineDialogVisible = ref(false);
+const timelineForm = reactive({
+  id: null,
+  title: '',
+  content: '',
+  date: '',
+  category: '',
+  icon: '',
+  displayOrder: 0
+});
+const isEditTimeline = ref(false);
+const timelineFormRef = ref(null);
+const timelineTableData = ref([]);
+const timelineTotal = ref(0);
+const timelineCurrentPage = ref(1);
+const timelinePageSize = ref(10);
+const timelineFormRules = {
+  title: [{ required: true, message: '请输入事件标题', trigger: 'blur' }],
+  date: [{ required: true, message: '请选择事件日期', trigger: 'change' }]
+};
 
 // 表单数据模拟
 const formData = ref({
@@ -846,27 +868,215 @@ const addImageUrl = () => {
   }
 };
 
+// 获取时间轴事件列表
+const fetchTimelineEvents = async () => {
+  loading.value = true;
+  try {
+    const response = await api.timeline.listTimelineEvents({
+      pageNum: timelineCurrentPage.value,
+      pageSize: timelinePageSize.value
+    });
+    
+    if (response && response.code === 200) {
+      timelineTableData.value = response.data.list || [];
+      timelineTotal.value = response.data.total || 0;
+    } else {
+      ElMessage.error(response?.msg || '获取时间轴事件列表失败');
+    }
+  } catch (error) {
+    console.error('获取时间轴事件列表失败:', error);
+    ElMessage.error('获取时间轴事件列表失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 获取时间轴分类
+const fetchTimelineCategories = async () => {
+  try {
+    const response = await api.timeline.getTimelineCategories();
+    if (response && response.code === 200) {
+      categoryOptions.value = response.data || [];
+    }
+  } catch (error) {
+    console.error('获取时间轴分类失败:', error);
+  }
+};
+
+// 时间轴分页变化
+const handleTimelinePageChange = (page) => {
+  timelineCurrentPage.value = page;
+  fetchTimelineEvents();
+};
+
+// 时间轴每页条数变化
+const handleTimelineSizeChange = (size) => {
+  timelinePageSize.value = size;
+  timelineCurrentPage.value = 1;
+  fetchTimelineEvents();
+};
+
+// 处理新增时间轴事件
+const handleAddTimelineEvent = () => {
+  // 重置表单
+  Object.keys(timelineForm).forEach(key => {
+    if (key === 'displayOrder') {
+      timelineForm[key] = 0; // 默认顺序为0
+    } else {
+      timelineForm[key] = '';
+    }
+  });
+  
+  // 获取分类列表
+  fetchTimelineCategories();
+  
+  isEditTimeline.value = false;
+  timelineDialogVisible.value = true;
+};
+
+// 处理编辑时间轴事件
+const handleEditTimelineEvent = async (row) => {
+  try {
+    loading.value = true;
+    
+    // 获取分类列表
+    await fetchTimelineCategories();
+    
+    // 获取事件详情
+    const response = await api.timeline.getTimelineEventById(row.id);
+    
+    if (response && response.code === 200) {
+      const eventData = response.data;
+      
+      // 填充表单数据
+      timelineForm.id = eventData.id;
+      timelineForm.title = eventData.title || '';
+      timelineForm.content = eventData.content || '';
+      timelineForm.date = eventData.date || '';
+      timelineForm.category = eventData.category || '';
+      timelineForm.icon = eventData.icon || '';
+      timelineForm.displayOrder = eventData.displayOrder || 0;
+      
+      isEditTimeline.value = true;
+      timelineDialogVisible.value = true;
+    } else {
+      ElMessage.error(response?.msg || '获取事件详情失败');
+    }
+  } catch (error) {
+    console.error('获取事件详情失败:', error);
+    ElMessage.error('获取事件详情失败');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 提交时间轴事件表单
+const submitTimelineForm = async () => {
+  if (!timelineFormRef.value) return;
+  
+  timelineFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        loading.value = true;
+        
+        // 准备事件数据
+        const eventData = { ...timelineForm };
+        
+        let response;
+        
+        if (isEditTimeline.value) {
+          // 编辑事件
+          response = await api.timeline.updateTimelineEvent(timelineForm.id, eventData);
+          if (response && response.code === 200) {
+            ElMessage.success('事件更新成功');
+          } else {
+            ElMessage.error(response?.msg || '更新事件失败');
+          }
+        } else {
+          // 创建事件
+          response = await api.timeline.createTimelineEvent(eventData);
+          if (response && response.code === 200) {
+            ElMessage.success('事件创建成功');
+          } else {
+            ElMessage.error(response?.msg || '创建事件失败');
+          }
+        }
+        
+        if (response && response.code === 200) {
+          timelineDialogVisible.value = false;
+          fetchTimelineEvents(); // 刷新列表
+        }
+      } catch (error) {
+        console.error(isEditTimeline.value ? '更新事件失败:' : '创建事件失败:', error);
+        ElMessage.error(isEditTimeline.value ? '更新事件失败' : '创建事件失败');
+      } finally {
+        loading.value = false;
+      }
+    }
+  });
+};
+
+// 删除时间轴事件
+const handleDeleteTimelineEvent = (row) => {
+  ElMessageBox.confirm('确定要删除该事件吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      loading.value = true;
+      const response = await api.timeline.deleteTimelineEvent(row.id);
+      
+      if (response && response.code === 200) {
+        ElMessage.success('删除成功');
+        fetchTimelineEvents(); // 刷新列表
+      } else {
+        ElMessage.error(response?.msg || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除事件失败:', error);
+      ElMessage.error('删除事件失败');
+    } finally {
+      loading.value = false;
+    }
+  }).catch(() => {
+    // 取消删除，不做处理
+  });
+};
+
 onMounted(() => {
   // 获取用户信息
   userInfo.value = getUserInfo();
   if (!userInfo.value) {
     // 如果没有用户信息，重定向到登录页面
-    router.push('/admin/login');
+    router.push('/login');
     return;
   }
   
-  // 获取文章列表
-  fetchArticles();
-  
-  // 获取分类和标签
-  fetchCategoriesAndTags();
-  
-  // 获取心情标签（内部已设置默认值）
-  fetchMoods();
-  
-  // 根据当前菜单加载相应数据
-  if (activeMenu.value === 'moments') {
+  // 根据当前选中的菜单加载对应数据
+  if (activeMenu.value === 'articles') {
+    fetchArticles();
+    fetchCategoriesAndTags();
+  } else if (activeMenu.value === 'moments') {
     fetchComplaints();
+    fetchMoods();
+  } else if (activeMenu.value === 'timeline') {
+    fetchTimelineEvents();
+    fetchTimelineCategories();
+  }
+});
+
+// 监听菜单变化
+watch(activeMenu, (newMenu) => {
+  if (newMenu === 'articles') {
+    fetchArticles();
+    fetchCategoriesAndTags();
+  } else if (newMenu === 'moments') {
+    fetchComplaints();
+    fetchMoods();
+  } else if (newMenu === 'timeline') {
+    fetchTimelineEvents();
+    fetchTimelineCategories();
   }
 });
 
@@ -1278,19 +1488,131 @@ const handleMenuSelect = (key) => {
           
           <!-- 时光轴管理 -->
           <div v-if="activeMenu === 'timeline'">
-            <h2>时光轴管理</h2>
-            <el-table :data="tableData" style="width: 100%" border>
-              <el-table-column prop="id" label="ID" width="80" />
-              <el-table-column prop="title" label="事件" />
-              <el-table-column prop="date" label="日期" width="180" />
-              <el-table-column prop="status" label="状态" width="120" />
+            <div class="action-bar">
+              <h2>时光轴管理</h2>
+              <el-button type="primary" @click="handleAddTimelineEvent">新增事件</el-button>
+            </div>
+            
+            <el-table
+              v-loading="loading"
+              :data="timelineTableData"
+              style="width: 100%"
+              border
+            >
+              <el-table-column prop="title" label="标题" width="180" />
+              <el-table-column prop="content" label="内容摘要" min-width="30%">
+                <template #default="scope">
+                  <el-tooltip
+                    class="box-item"
+                    effect="dark"
+                    :content="scope.row.content || '暂无内容'"
+                    placement="top-start"
+                  >
+                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '暂无内容' }}</div>
+                  </el-tooltip>
+                </template>
+              </el-table-column>
+              <el-table-column prop="date" label="日期" width="120" />
+              <el-table-column prop="category" label="分类" width="100" />
+              <el-table-column prop="icon" label="图标" width="80">
+                <template #default="scope">
+                  {{ scope.row.icon || '无' }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="displayOrder" label="排序" width="80" />
               <el-table-column label="操作" width="180">
-                <template #default>
-                  <el-button size="small" type="primary">编辑</el-button>
-                  <el-button size="small" type="danger">删除</el-button>
+                <template #default="scope">
+                  <el-button size="small" type="primary" @click="handleEditTimelineEvent(scope.row)">编辑</el-button>
+                  <el-button size="small" type="danger" @click="handleDeleteTimelineEvent(scope.row)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
+            
+            <!-- 分页 -->
+            <div class="pagination-container">
+              <el-pagination
+                v-model:current-page="timelineCurrentPage"
+                v-model:page-size="timelinePageSize"
+                :page-sizes="[10, 20, 50, 100]"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="timelineTotal"
+                @size-change="handleTimelineSizeChange"
+                @current-change="handleTimelinePageChange"
+              />
+            </div>
+            
+            <!-- 新增/编辑时间轴事件对话框 -->
+            <el-dialog
+              v-model="timelineDialogVisible"
+              :title="isEditTimeline ? '编辑事件' : '新增事件'"
+              width="70%"
+              :close-on-click-modal="false"
+            >
+              <el-form
+                ref="timelineFormRef"
+                :model="timelineForm"
+                :rules="timelineFormRules"
+                label-width="100px"
+              >
+                <el-form-item label="标题" prop="title">
+                  <el-input v-model="timelineForm.title" placeholder="请输入事件标题" />
+                </el-form-item>
+                
+                <el-form-item label="内容" prop="content">
+                  <el-input 
+                    v-model="timelineForm.content" 
+                    type="textarea" 
+                    :rows="5" 
+                    placeholder="请输入事件内容" 
+                  />
+                </el-form-item>
+                
+                <el-form-item label="日期" prop="date">
+                  <el-date-picker
+                    v-model="timelineForm.date"
+                    type="date"
+                    placeholder="选择日期"
+                    format="YYYY-MM-DD"
+                    value-format="YYYY-MM-DD"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+                
+                <el-form-item label="分类" prop="category">
+                  <el-select 
+                    v-model="timelineForm.category" 
+                    placeholder="请选择分类"
+                    filterable
+                    allow-create
+                    default-first-option
+                    style="width: 100%"
+                  >
+                    <el-option 
+                      v-for="category in categoryOptions" 
+                      :key="category" 
+                      :label="category" 
+                      :value="category" 
+                    />
+                  </el-select>
+                </el-form-item>
+                
+                <el-form-item label="图标" prop="icon">
+                  <el-input v-model="timelineForm.icon" placeholder="请输入图标Emoji，如: 🚀" />
+                </el-form-item>
+                
+                <el-form-item label="排序" prop="displayOrder">
+                  <el-input-number v-model="timelineForm.displayOrder" :min="0" :max="999" />
+                  <span class="form-tip">数字越小排序越靠前，同一天内的事件按此排序</span>
+                </el-form-item>
+              </el-form>
+              
+              <template #footer>
+                <el-button @click="timelineDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="submitTimelineForm" :loading="loading">
+                  保存
+                </el-button>
+              </template>
+            </el-dialog>
           </div>
           
           <!-- 个人信息管理 -->

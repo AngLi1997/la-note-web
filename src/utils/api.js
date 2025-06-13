@@ -248,6 +248,52 @@ export const timelineApi = {
    */
   getTimelineCategories: (instance = axiosInstance) => {
     return instance.get('/timeline/categories')
+  },
+  
+  /**
+   * 分页查询时间轴事件
+   * @param {Object} params 查询参数
+   * @returns {Promise} 返回请求Promise
+   */
+  listTimelineEvents: (params, instance = axiosInstance) => {
+    return instance.get('/timeline/list', { params })
+  },
+  
+  /**
+   * 获取时间轴事件详情
+   * @param {string} id 事件ID
+   * @returns {Promise} 返回请求Promise
+   */
+  getTimelineEventById: (id, instance = axiosInstance) => {
+    return instance.get(`/timeline/${id}`)
+  },
+  
+  /**
+   * 创建时间轴事件
+   * @param {Object} data 事件数据
+   * @returns {Promise} 返回请求Promise
+   */
+  createTimelineEvent: (data, instance = axiosInstance) => {
+    return instance.post('/timeline', data)
+  },
+  
+  /**
+   * 更新时间轴事件
+   * @param {string} id 事件ID
+   * @param {Object} data 事件数据
+   * @returns {Promise} 返回请求Promise
+   */
+  updateTimelineEvent: (id, data, instance = axiosInstance) => {
+    return instance.put(`/timeline/${id}`, data)
+  },
+  
+  /**
+   * 删除时间轴事件
+   * @param {string} id 事件ID
+   * @returns {Promise} 返回请求Promise
+   */
+  deleteTimelineEvent: (id, instance = axiosInstance) => {
+    return instance.delete(`/timeline/${id}`)
   }
 }
 
