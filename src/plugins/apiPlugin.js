@@ -1,4 +1,4 @@
-import { userSettingApi, articleApi, authApi, complaintApi, timelineApi, siteSettingApi, initApi } from '@/utils/api.js'
+import { userSettingApi, articleApi, authApi, complaintApi, timelineApi, siteSettingApi, uploadApi, initApi } from '@/utils/api.js'
 
 export default {
   install: (app) => {
@@ -17,7 +17,8 @@ export default {
       auth: authApi,
       complaint: complaintApi,
       timeline: timelineApi,
-      site: siteSettingApi
+      site: siteSettingApi,
+      upload: uploadApi
     }
     
     app.provide('api', api)

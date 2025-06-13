@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, reactive, inject } from 'vue';
+import { ref, onMounted, reactive, inject, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { logout, getUserInfo } from '../../utils/auth.js';
 import { ElMessage, ElMessageBox } from 'element-plus';
@@ -17,6 +17,7 @@ const pageSize = ref(10);
 // 文章对话框相关
 const articleDialogVisible = ref(false);
 const articleForm = reactive({
+  id: null, // 添加id字段，用于区分新增和编辑
   title: '',
   summary: '',
   content: '',
@@ -25,6 +26,7 @@ const articleForm = reactive({
   thumbnail: '',
   status: 0 // 默认为草稿状态
 });
+const isEdit = ref(false); // 添加标记，区分是新增还是编辑
 const categoryOptions = ref([]);
 const tagOptions = ref([]);
 const formRules = {
@@ -32,6 +34,8 @@ const formRules = {
   content: [{ required: true, message: '请输入文章内容', trigger: 'blur' }]
 };
 const articleFormRef = ref(null);
+const thumbnailRef = ref(null);
+const uploadLoading = ref(false);
 
 // 菜单项
 const menuItems = [
@@ -54,8 +58,8 @@ const fetchArticles = async () => {
   loading.value = true;
   try {
     const response = await api.article.getArticlesList({
-      page: currentPage.value,
-      size: pageSize.value
+      pageNum: currentPage.value,
+      pageSize: pageSize.value
     });
     
     if (response && response.code === 200) {
@@ -117,7 +121,63 @@ const handleAddArticle = () => {
     }
   });
   
+  isEdit.value = false;
   articleDialogVisible.value = true;
+  
+  // 确保DOM已更新后设置粘贴事件监听
+  nextTick(() => {
+    setupPasteListener();
+  });
+};
+
+// 处理编辑文章
+const handleEditArticle = async (row) => {
+  try {
+    loading.value = true;
+    // 获取文章详情
+    const response = await api.article.getArticleById(row.id);
+    
+    if (response && response.code === 200) {
+      const articleData = response.data;
+      
+      // 填充表单数据
+      articleForm.id = articleData.id;
+      articleForm.title = articleData.title || '';
+      articleForm.summary = articleData.summary || '';
+      articleForm.content = articleData.content || '';
+      articleForm.category = articleData.category || '';
+      articleForm.thumbnail = articleData.thumbnail || '';
+      articleForm.status = articleData.status || 0;
+      
+      // 处理标签，确保是数组格式
+      if (articleData.tags) {
+        if (typeof articleData.tags === 'string') {
+          articleForm.tags = articleData.tags.split(',').map(tag => tag.trim()).filter(Boolean);
+        } else if (Array.isArray(articleData.tags)) {
+          articleForm.tags = [...articleData.tags];
+        } else {
+          articleForm.tags = [];
+        }
+      } else {
+        articleForm.tags = [];
+      }
+      
+      isEdit.value = true;
+      articleDialogVisible.value = true;
+      
+      // 确保DOM已更新后设置粘贴事件监听
+      nextTick(() => {
+        setupPasteListener();
+      });
+    } else {
+      ElMessage.error(response?.msg || '获取文章详情失败');
+    }
+  } catch (error) {
+    console.error('获取文章详情失败:', error);
+    ElMessage.error('获取文章详情失败');
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 提交文章表单
@@ -129,32 +189,80 @@ const submitArticleForm = async () => {
       try {
         loading.value = true;
         
-        // 创建文章 - 确保status值正确传递
-        // 注意：status应该是数字类型，与后端实体类保持一致
+        // 准备文章数据
         const articleData = {
           ...articleForm,
           status: Number(articleForm.status), // 确保是数字类型
           tags: articleForm.tags // 直接使用数组
         };
         
-        console.log('提交文章数据:', articleData); // 调试用
+        let response;
         
-        const response = await api.article.createArticle(articleData);
+        if (isEdit.value) {
+          // 编辑文章
+          response = await api.article.updateArticle(articleForm.id, articleData);
+          if (response && response.code === 200) {
+            ElMessage.success('文章更新成功');
+          } else {
+            ElMessage.error(response?.msg || '更新文章失败');
+          }
+        } else {
+          // 创建文章
+          response = await api.article.createArticle(articleData);
+          if (response && response.code === 200) {
+            ElMessage.success(articleForm.status === 1 ? '文章已发布成功' : '文章已保存为草稿');
+          } else {
+            ElMessage.error(response?.msg || '创建文章失败');
+          }
+        }
         
         if (response && response.code === 200) {
-          ElMessage.success(articleForm.status === 1 ? '文章已发布成功' : '文章已保存为草稿');
           articleDialogVisible.value = false;
           fetchArticles(); // 刷新列表
-        } else {
-          ElMessage.error(response?.msg || '创建文章失败');
         }
       } catch (error) {
-        console.error('创建文章失败:', error);
-        ElMessage.error('创建文章失败');
+        console.error(isEdit.value ? '更新文章失败:' : '创建文章失败:', error);
+        ElMessage.error(isEdit.value ? '更新文章失败' : '创建文章失败');
       } finally {
         loading.value = false;
       }
     }
+  });
+};
+
+// 处理文章发布/撤回
+const handlePublishArticle = async (row) => {
+  const action = row.status === 1 ? '撤回' : '发布';
+  const newStatus = row.status === 1 ? 0 : 1;
+  
+  ElMessageBox.confirm(`确定要${action}该文章吗？`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      loading.value = true;
+      
+      // 更新文章状态
+      const response = await api.article.updateArticle(row.id, {
+        ...row,
+        status: newStatus
+      });
+      
+      if (response && response.code === 200) {
+        ElMessage.success(`${action}成功`);
+        fetchArticles(); // 刷新列表
+      } else {
+        ElMessage.error(response?.msg || `${action}失败`);
+      }
+    } catch (error) {
+      console.error(`${action}文章失败:`, error);
+      ElMessage.error(`${action}文章失败`);
+    } finally {
+      loading.value = false;
+    }
+  }).catch(() => {
+    // 取消操作，不做处理
   });
 };
 
@@ -184,6 +292,103 @@ const handleDeleteArticle = (row) => {
   }).catch(() => {
     // 取消删除，不做处理
   });
+};
+
+// 处理粘贴图片
+const handlePasteImage = async (event) => {
+  // 确保焦点在缩略图输入框时才处理粘贴事件
+  if (document.activeElement !== thumbnailRef.value.input) return;
+  
+  const items = event.clipboardData.items;
+  let file = null;
+  
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      file = items[i].getAsFile();
+      break;
+    }
+  }
+  
+  if (file) {
+    event.preventDefault(); // 阻止默认粘贴行为
+    
+    try {
+      uploadLoading.value = true;
+      ElMessage.info('正在上传图片...');
+      
+      const response = await api.upload.uploadImage(file);
+      
+      if (response && response.code === 200 && response.data) {
+        // 根据后端返回的数据结构获取URL
+        let imageUrl = '';
+        if (typeof response.data === 'string') {
+          // 如果直接返回URL字符串
+          imageUrl = response.data;
+        } else if (response.data.url) {
+          // 如果返回对象中包含url字段
+          imageUrl = response.data.url;
+        } else if (response.data.path) {
+          // 如果返回对象中包含path字段
+          imageUrl = response.data.path;
+        } else if (response.data.fileUrl) {
+          // 如果返回对象中包含fileUrl字段
+          imageUrl = response.data.fileUrl;
+        }
+        
+        if (imageUrl) {
+          articleForm.thumbnail = imageUrl;
+          ElMessage.success('图片上传成功');
+        } else {
+          ElMessage.error('无法获取上传的图片URL');
+          console.error('上传响应中未找到图片URL:', response.data);
+        }
+      } else {
+        ElMessage.error(response?.msg || '图片上传失败');
+      }
+    } catch (error) {
+      console.error('图片上传失败:', error);
+      ElMessage.error('图片上传失败');
+    } finally {
+      uploadLoading.value = false;
+    }
+  }
+};
+
+// 设置粘贴事件监听
+const setupPasteListener = () => {
+  // 添加全局粘贴事件监听
+  document.addEventListener('paste', handlePasteImage);
+};
+
+// 移除粘贴事件监听
+const removePasteListener = () => {
+  document.removeEventListener('paste', handlePasteImage);
+};
+
+// 处理对话框关闭
+const handleDialogClose = () => {
+  removePasteListener();
+  articleDialogVisible.value = false;
+};
+
+// 创建新分类
+const createCategory = (query) => {
+  if (query && !categoryOptions.value.includes(query)) {
+    categoryOptions.value.push(query);
+    articleForm.category = query;
+    ElMessage.success(`已创建新分类: ${query}`);
+  }
+};
+
+// 创建新标签
+const createTag = (query) => {
+  if (query && !tagOptions.value.includes(query)) {
+    tagOptions.value.push(query);
+    if (!articleForm.tags.includes(query)) {
+      articleForm.tags.push(query);
+    }
+    ElMessage.success(`已创建新标签: ${query}`);
+  }
 };
 
 // 获取文章状态文字
@@ -288,9 +493,16 @@ const handleMenuSelect = (key) => {
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="150">
+              <el-table-column label="操作" width="220">
                 <template #default="scope">
-                  <el-button size="small" type="primary">编辑</el-button>
+                  <el-button size="small" type="primary" @click="handleEditArticle(scope.row)">编辑</el-button>
+                  <el-button 
+                    size="small" 
+                    :type="scope.row.status === 1 ? 'warning' : 'success'"
+                    @click="handlePublishArticle(scope.row)"
+                  >
+                    {{ scope.row.status === 1 ? '撤回' : '发布' }}
+                  </el-button>
                   <el-button 
                     size="small" 
                     type="danger" 
@@ -316,9 +528,10 @@ const handleMenuSelect = (key) => {
             <!-- 新增/编辑文章对话框 -->
             <el-dialog
               v-model="articleDialogVisible"
-              title="新增文章"
+              :title="isEdit ? '编辑文章' : '新增文章'"
               width="70%"
               :close-on-click-modal="false"
+              @closed="handleDialogClose"
             >
               <el-form
                 ref="articleFormRef"
@@ -353,6 +566,10 @@ const handleMenuSelect = (key) => {
                     v-model="articleForm.category" 
                     placeholder="请选择分类"
                     clearable
+                    filterable
+                    allow-create
+                    default-first-option
+                    @visible-change="val => !val && createCategory(articleForm.category)"
                   >
                     <el-option 
                       v-for="category in categoryOptions" 
@@ -361,6 +578,7 @@ const handleMenuSelect = (key) => {
                       :value="category" 
                     />
                   </el-select>
+                  <span class="form-tip">可手动输入新分类</span>
                 </el-form-item>
                 
                 <el-form-item label="标签">
@@ -369,6 +587,10 @@ const handleMenuSelect = (key) => {
                     multiple 
                     placeholder="请选择标签"
                     clearable
+                    filterable
+                    allow-create
+                    default-first-option
+                    @visible-change="val => !val && articleForm.tags.forEach(tag => createTag(tag))"
                   >
                     <el-option 
                       v-for="tag in tagOptions" 
@@ -377,10 +599,27 @@ const handleMenuSelect = (key) => {
                       :value="tag" 
                     />
                   </el-select>
+                  <span class="form-tip">可手动输入新标签</span>
                 </el-form-item>
                 
                 <el-form-item label="缩略图">
-                  <el-input v-model="articleForm.thumbnail" placeholder="请输入缩略图URL" />
+                  <el-input 
+                    ref="thumbnailRef"
+                    v-model="articleForm.thumbnail" 
+                    placeholder="请输入缩略图URL或直接粘贴图片" 
+                    :loading="uploadLoading"
+                  >
+                    <template #append>
+                      <el-tooltip content="支持直接粘贴图片" placement="top">
+                        <span>粘贴</span>
+                      </el-tooltip>
+                    </template>
+                  </el-input>
+                  <span class="form-tip">支持直接粘贴图片，自动上传</span>
+                  
+                  <div v-if="articleForm.thumbnail" class="thumbnail-preview">
+                    <img :src="articleForm.thumbnail" alt="缩略图预览" />
+                  </div>
                 </el-form-item>
                 
                 <el-form-item label="状态">
@@ -479,29 +718,26 @@ const handleMenuSelect = (key) => {
 
 <style scoped>
 .dashboard-container {
-  height: 100vh;
-  width: 100%;
+  min-height: 100vh;
+  background-color: #f5f5f5;
 }
 
 .dashboard-layout {
-  height: 100%;
+  height: 100vh;
 }
 
 .dashboard-header {
-  background-color: #fff;
+  background-color: #11754b;
+  color: white;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-  z-index: 10;
+  justify-content: space-between;
   padding: 0 20px;
-  height: 60px;
 }
 
 .logo {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
-  color: #11754b;
 }
 
 .user-info {
@@ -510,57 +746,13 @@ const handleMenuSelect = (key) => {
   gap: 15px;
 }
 
-.main-container {
-  height: calc(100% - 60px);
-}
-
 .menu-aside {
-  background-color: #fff;
-  height: 100%;
-  overflow-y: auto;
+  background-color: white;
   border-right: 1px solid #e6e6e6;
 }
 
-.el-menu-vertical {
-  height: 100%;
-  border-right: none;
-}
-
 .content-main {
-  background-color: #f5f7fa;
   padding: 20px;
-  overflow-y: auto;
-}
-
-.content-main h2 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: #11754b;
-}
-
-.profile-form,
-.site-form {
-  max-width: 600px;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-.form-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 100%;
-}
-
-.admin-form {
-  width: 100%;
-  max-width: 800px;
-}
-
-.admin-form .el-form-item {
-  margin-bottom: 20px;
 }
 
 .action-bar {
@@ -573,12 +765,34 @@ const handleMenuSelect = (key) => {
 .pagination-container {
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .summary-text {
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.form-tip {
+  margin-left: 10px;
+  font-size: 12px;
+  color: #888;
+}
+
+.thumbnail-preview {
+  margin-top: 10px;
+  max-width: 200px;
+  max-height: 150px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.thumbnail-preview img {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 </style> 

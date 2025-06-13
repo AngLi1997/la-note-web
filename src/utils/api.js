@@ -246,6 +246,26 @@ export const siteSettingApi = {
 }
 
 /**
+ * 文件上传相关API
+ */
+export const uploadApi = {
+  /**
+   * 上传图片
+   * @param {File} file 文件对象
+   * @returns {Promise} 返回请求Promise，包含上传后的URL
+   */
+  uploadImage: (file, instance = axiosInstance) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return instance.post('/file/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
+}
+
+/**
  * 初始化API，使用注入的axios实例
  * @param {Object} injectedAxios 注入的axios实例
  */
@@ -279,5 +299,10 @@ export const initApi = (injectedAxios) => {
   Object.keys(siteSettingApi).forEach(key => {
     const originalMethod = siteSettingApi[key]
     siteSettingApi[key] = (...args) => originalMethod(...args, injectedAxios)
+  })
+  
+  Object.keys(uploadApi).forEach(key => {
+    const originalMethod = uploadApi[key]
+    uploadApi[key] = (...args) => originalMethod(...args, injectedAxios)
   })
 } 
