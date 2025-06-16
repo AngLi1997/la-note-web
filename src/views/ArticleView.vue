@@ -3,6 +3,8 @@ import { ref, onMounted, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
 import { ElMessage, ElLoading } from 'element-plus'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css' // 导入一个代码高亮主题，可以选择其他主题
 
 const api = inject('api')
 const route = useRoute()
@@ -13,7 +15,18 @@ const md = new MarkdownIt({
   html: true,
   linkify: true,
   typographer: true,
-  breaks: true
+  breaks: true,
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+               hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+               '</code></pre>';
+      } catch (__) {}
+    }
+    // 使用默认的转义
+    return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
+  }
 })
 
 // 格式化日期
@@ -243,6 +256,7 @@ onMounted(() => {
   border-radius: 6px;
   overflow-x: auto;
   margin-bottom: 16px;
+  position: relative;
 }
 
 .markdown-body :deep(pre code) {
@@ -251,6 +265,13 @@ onMounted(() => {
   display: block;
   overflow-x: auto;
   line-height: 1.5;
+  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+}
+
+.markdown-body :deep(.hljs) {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 3px;
 }
 
 .markdown-body :deep(blockquote) {
