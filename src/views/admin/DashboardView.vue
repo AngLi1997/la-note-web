@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted, reactive, inject, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { logout, getUserInfo, getToken } from '../../utils/auth.js';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { logout, getUserInfo, getToken, setUserInfo } from '../../utils/auth.js';
+import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 
 const api = inject('api');
@@ -95,12 +95,57 @@ const timelineFormRules = {
   date: [{ required: true, message: '请选择事件日期', trigger: 'change' }]
 };
 
-// 表单数据模拟
-const formData = ref({
-  name: '管理员',
-  email: 'admin@example.com',
-  bio: '网站管理员简介'
+// 表单数据
+const formData = reactive({
+  id: '',
+  username: '',
+  nickname: '',
+  email: '',
+  phone: '',
+  bio: '',
+  avatar: '',
+  blogIntro: '',
+  contactEmail: '',
+  githubUrl: '',
+  extraContacts: '',
+  parsedExtraContacts: {},
+  wechat: ''
 });
+
+// 密码修改表单
+const passwordForm = reactive({
+  oldPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
+
+// 密码修改对话框
+const passwordDialogVisible = ref(false);
+const passwordFormRef = ref(null);
+const passwordRules = {
+  oldPassword: [{ required: true, message: '请输入当前密码', trigger: 'blur' }],
+  newPassword: [
+    { required: true, message: '请输入新密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能少于6个字符', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认新密码', trigger: 'blur' },
+    { 
+      validator: (rule, value, callback) => {
+        if (value !== passwordForm.newPassword) {
+          callback(new Error('两次输入的密码不一致'));
+        } else {
+          callback();
+        }
+      }, 
+      trigger: 'blur' 
+    }
+  ]
+};
+
+// 头像上传相关
+const avatarRef = ref(null);
+const avatarUploadLoading = ref(false);
 
 // 获取文章列表
 const fetchArticles = async () => {
@@ -1044,6 +1089,317 @@ const handleDeleteTimelineEvent = (row) => {
   });
 };
 
+// 获取用户信息
+const fetchUserInfo = async () => {
+  loading.value = true;
+  try {
+    // 先从本地存储获取
+    const localUserInfo = getUserInfo();
+    console.log('本地用户信息:', localUserInfo);
+    
+    if (localUserInfo) {
+      formData.id = localUserInfo.id || '';
+      formData.username = localUserInfo.username || '';
+      formData.nickname = localUserInfo.nickname || '';
+      formData.email = localUserInfo.email || '';
+      formData.phone = localUserInfo.phone || '';
+      formData.avatar = localUserInfo.avatar || '';
+    }
+    
+    // 如果有用户设置API，可以获取更多信息
+    if (formData.id) {
+      try {
+        console.log('正在获取用户设置信息，用户ID:', formData.id);
+        const response = await api.user.getUserSetting(formData.id);
+        console.log('获取用户设置响应:', response);
+        
+        if (response && response.code === 200 && response.data) {
+          // 确保所有字段都有值
+          formData.bio = response.data.bio || '';
+          formData.blogIntro = response.data.blogIntro || '';
+          formData.contactEmail = response.data.contactEmail || '';
+          formData.githubUrl = response.data.githubUrl || '';
+          formData.extraContacts = response.data.extraContacts || '';
+          
+          console.log('设置表单数据:', {
+            bio: formData.bio,
+            blogIntro: formData.blogIntro,
+            contactEmail: formData.contactEmail,
+            githubUrl: formData.githubUrl,
+            extraContacts: formData.extraContacts
+          });
+          
+          // 解析额外联系方式
+          try {
+            if (formData.extraContacts) {
+              formData.parsedExtraContacts = JSON.parse(formData.extraContacts);
+              console.log('解析后的额外联系方式:', formData.parsedExtraContacts);
+              
+              // 提取微信号
+              if (formData.parsedExtraContacts.wechat) {
+                formData.wechat = formData.parsedExtraContacts.wechat;
+                console.log('设置微信号:', formData.wechat);
+              }
+            } else {
+              formData.parsedExtraContacts = {};
+              formData.wechat = '';
+            }
+          } catch (e) {
+            console.error('解析额外联系方式失败:', e);
+            formData.parsedExtraContacts = {};
+            formData.wechat = '';
+          }
+          
+          // 如果有联系方式，也可以设置
+          if (response.data.contactEmail) {
+            formData.email = response.data.contactEmail;
+          }
+        }
+      } catch (error) {
+        console.error('获取用户设置失败:', error);
+      }
+    }
+    
+    // 强制更新表单数据
+    nextTick(() => {
+      console.log('表单数据更新完成:', {
+        bio: formData.bio,
+        blogIntro: formData.blogIntro,
+        contactEmail: formData.contactEmail,
+        githubUrl: formData.githubUrl,
+        wechat: formData.wechat
+      });
+    });
+    
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 保存用户信息
+const saveUserInfo = async () => {
+  try {
+    loading.value = true;
+    
+    // 处理额外联系方式
+    const extraContactsObj = {
+      ...formData.parsedExtraContacts
+    };
+    
+    // 如果有微信，添加到额外联系方式
+    if (formData.wechat) {
+      extraContactsObj.wechat = formData.wechat;
+    }
+    
+    // 准备用户设置数据
+    const settingData = {
+      userId: formData.id,
+      bio: formData.bio || '',
+      blogIntro: formData.blogIntro || '',
+      contactEmail: formData.contactEmail || formData.email || '',
+      githubUrl: formData.githubUrl || '',
+      extraContacts: Object.keys(extraContactsObj).length > 0 ? JSON.stringify(extraContactsObj) : ''
+    };
+    
+    // 更新用户设置
+    const settingResponse = await api.user.updateUserSetting(formData.id, settingData);
+    
+    // 更新本地存储的用户信息
+    const currentUserInfo = getUserInfo();
+    if (currentUserInfo) {
+      currentUserInfo.nickname = formData.nickname;
+      currentUserInfo.email = formData.email;
+      currentUserInfo.phone = formData.phone;
+      currentUserInfo.avatar = formData.avatar;
+      setUserInfo(currentUserInfo);
+    }
+    
+    ElMessage.success('个人信息保存成功');
+  } catch (error) {
+    console.error('保存用户信息失败:', error);
+    ElMessage.error('保存失败，请稍后重试');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 处理头像粘贴上传
+const handleAvatarPaste = async (event) => {
+  // 确保焦点在头像输入框时才处理粘贴事件
+  if (document.activeElement !== avatarRef.value.input) return;
+  
+  const items = event.clipboardData.items;
+  let file = null;
+  
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf('image') !== -1) {
+      file = items[i].getAsFile();
+      break;
+    }
+  }
+  
+  if (file) {
+    event.preventDefault(); // 阻止默认粘贴行为
+    await uploadAvatar(file);
+  }
+};
+
+// 上传头像
+const uploadAvatar = async (file) => {
+  try {
+    avatarUploadLoading.value = true;
+    ElMessage.info('正在上传头像...');
+    
+    const response = await api.upload.uploadImage(file);
+    
+    if (response && response.code === 200 && response.data) {
+      // 根据后端返回的数据结构获取URL
+      let imageUrl = '';
+      if (typeof response.data === 'string') {
+        imageUrl = response.data;
+      } else if (response.data.url) {
+        imageUrl = response.data.url;
+      } else if (response.data.path) {
+        imageUrl = response.data.path;
+      } else if (response.data.fileUrl) {
+        imageUrl = response.data.fileUrl;
+      }
+      
+      if (imageUrl) {
+        formData.avatar = imageUrl;
+        
+        // 更新本地存储的用户信息
+        const currentUserInfo = getUserInfo();
+        if (currentUserInfo) {
+          currentUserInfo.avatar = imageUrl;
+          setUserInfo(currentUserInfo);
+        }
+        
+        ElMessage.success('头像上传成功');
+      } else {
+        ElMessage.error('无法获取上传的图片URL');
+      }
+    } else {
+      ElMessage.error(response?.msg || '头像上传失败');
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error);
+    ElMessage.error('头像上传失败');
+  } finally {
+    avatarUploadLoading.value = false;
+  }
+};
+
+// 设置头像粘贴事件监听
+const setupAvatarPasteListener = () => {
+  document.addEventListener('paste', handleAvatarPaste);
+};
+
+// 移除头像粘贴事件监听
+const removeAvatarPasteListener = () => {
+  document.removeEventListener('paste', handleAvatarPaste);
+};
+
+// 打开修改密码对话框
+const openPasswordDialog = () => {
+  passwordForm.oldPassword = '';
+  passwordForm.newPassword = '';
+  passwordForm.confirmPassword = '';
+  passwordDialogVisible.value = true;
+};
+
+// 提交修改密码
+const submitPasswordForm = async () => {
+  if (!passwordFormRef.value) return;
+  
+  passwordFormRef.value.validate(async (valid) => {
+    if (valid) {
+      try {
+        loading.value = true;
+        
+        // 这里需要调用后端API修改密码
+        // 假设有一个修改密码的API
+        const response = await api.auth.updatePassword({
+          oldPassword: passwordForm.oldPassword,
+          newPassword: passwordForm.newPassword
+        });
+        
+        if (response && response.code === 200) {
+          ElMessage.success('密码修改成功，请重新登录');
+          passwordDialogVisible.value = false;
+          
+          // 退出登录，重定向到登录页
+          setTimeout(() => {
+            logout();
+            router.push('/login');
+          }, 1500);
+        } else {
+          ElMessage.error(response?.msg || '密码修改失败');
+        }
+      } catch (error) {
+        console.error('密码修改失败:', error);
+        ElMessage.error('密码修改失败，请检查当前密码是否正确');
+      } finally {
+        loading.value = false;
+      }
+    }
+  });
+};
+
+// 头像上传前检查
+const beforeAvatarUpload = (file) => {
+  const isImage = file.type.startsWith('image/');
+  const isLt2M = file.size / 1024 / 1024 < 2;
+  
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件!');
+    return false;
+  }
+  
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+    return false;
+  }
+  
+  avatarUploadLoading.value = true;
+  return true;
+};
+
+// 头像上传成功处理
+const handleAvatarSuccess = (response, file) => {
+  if (response && response.code === 200) {
+    // 获取上传后的URL
+    let imageUrl = '';
+    if (typeof response.data === 'string') {
+      imageUrl = response.data;
+    } else if (response.data.url) {
+      imageUrl = response.data.url;
+    } else if (response.data.path) {
+      imageUrl = response.data.path;
+    } else if (response.data.fileUrl) {
+      imageUrl = response.data.fileUrl;
+    }
+    
+    if (imageUrl) {
+      formData.avatar = imageUrl;
+      
+      // 更新本地存储的用户信息
+      const currentUserInfo = getUserInfo();
+      if (currentUserInfo) {
+        currentUserInfo.avatar = imageUrl;
+        setUserInfo(currentUserInfo);
+      }
+      
+      ElMessage.success('头像上传成功');
+    }
+  } else {
+    ElMessage.error(response?.msg || '头像上传失败');
+  }
+  avatarUploadLoading.value = false;
+};
+
 onMounted(() => {
   // 获取用户信息
   userInfo.value = getUserInfo();
@@ -1052,22 +1408,11 @@ onMounted(() => {
     router.push('/login');
     return;
   }
-  
-  // 根据当前选中的菜单加载对应数据
-  if (activeMenu.value === 'articles') {
-    fetchArticles();
-    fetchCategoriesAndTags();
-  } else if (activeMenu.value === 'moments') {
-    fetchComplaints();
-    fetchMoods();
-  } else if (activeMenu.value === 'timeline') {
-    fetchTimelineEvents();
-    fetchTimelineCategories();
-  }
 });
 
 // 监听菜单变化
-watch(activeMenu, (newMenu) => {
+watch(activeMenu, (newMenu, oldMenu) => {
+  console.log('菜单变化:', oldMenu, '->', newMenu);
   if (newMenu === 'articles') {
     fetchArticles();
     fetchCategoriesAndTags();
@@ -1077,8 +1422,17 @@ watch(activeMenu, (newMenu) => {
   } else if (newMenu === 'timeline') {
     fetchTimelineEvents();
     fetchTimelineCategories();
+  } else if (newMenu === 'profile') {
+    console.log('切换到个人信息管理页面');
+    // 获取最新的用户信息
+    fetchUserInfo();
+    // 设置头像粘贴事件监听
+    setupAvatarPasteListener();
+  } else {
+    // 移除头像粘贴事件监听
+    removeAvatarPasteListener();
   }
-});
+}, { immediate: true });
 
 const handleLogout = () => {
   logout();
@@ -1089,16 +1443,6 @@ const handleLogout = () => {
 
 const handleMenuSelect = (key) => {
   activeMenu.value = key;
-  
-  // 根据选择的菜单加载相应的数据
-  if (key === 'articles') {
-    fetchArticles();
-  } else if (key === 'moments') {
-    // 获取心情标签（内部已设置默认值）
-    fetchMoods();
-    // 获取拾光列表
-    fetchComplaints();
-  }
 };
 </script>
 
@@ -1618,20 +1962,140 @@ const handleMenuSelect = (key) => {
           <!-- 个人信息管理 -->
           <div v-if="activeMenu === 'profile'" class="form-container">
             <h2>个人信息管理</h2>
-            <el-form :model="formData" label-width="120px" class="admin-form">
-              <el-form-item label="用户名">
-                <el-input v-model="formData.name" />
+            <el-form v-loading="loading" :model="formData" label-width="120px" class="admin-form">
+              <el-form-item label="头像">
+                <div class="avatar-container">
+                  <el-avatar :size="100" :src="formData.avatar" v-if="formData.avatar">
+                    <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png" />
+                  </el-avatar>
+                  <el-avatar :size="100" icon="el-icon-user-solid" v-else></el-avatar>
+                  
+                  <div class="avatar-upload">
+                    <el-upload
+                      action="/api/file/upload"
+                      :headers="{ 'Authorization': 'Bearer ' + getToken() }"
+                      :show-file-list="false"
+                      :on-success="handleAvatarSuccess"
+                      :before-upload="beforeAvatarUpload"
+                    >
+                      <el-button size="small" type="primary">上传头像</el-button>
+                    </el-upload>
+                    
+                    <div class="avatar-input">
+                      <el-input 
+                        ref="avatarRef"
+                        v-model="formData.avatar" 
+                        placeholder="请输入头像URL或直接粘贴图片" 
+                        :loading="avatarUploadLoading"
+                      >
+                        <template #append>
+                          <el-tooltip content="支持直接粘贴图片" placement="top">
+                            <span>粘贴</span>
+                          </el-tooltip>
+                        </template>
+                      </el-input>
+                      <span class="form-tip">支持直接粘贴图片，自动上传</span>
+                    </div>
+                  </div>
+                </div>
               </el-form-item>
+              
+              <el-form-item label="用户名">
+                <el-input v-model="formData.username" disabled />
+                <span class="form-tip">用户名不可修改</span>
+              </el-form-item>
+              
+              <el-form-item label="昵称">
+                <el-input v-model="formData.nickname" />
+              </el-form-item>
+              
               <el-form-item label="邮箱">
                 <el-input v-model="formData.email" />
               </el-form-item>
-              <el-form-item label="个人简介">
-                <el-input v-model="formData.bio" type="textarea" :rows="4" />
+              
+              <el-form-item label="手机号">
+                <el-input v-model="formData.phone" />
               </el-form-item>
+              
+              <el-form-item label="个人简介">
+                <el-input v-model="formData.bio" type="textarea" :rows="4" placeholder="请输入个人简介，显示在关于页面" />
+              </el-form-item>
+              
+              <el-form-item label="博客介绍">
+                <el-input v-model="formData.blogIntro" type="textarea" :rows="4" placeholder="请输入博客介绍，显示在关于页面" />
+              </el-form-item>
+              
+              <el-divider content-position="center">联系方式设置</el-divider>
+              
+              <el-form-item label="联系邮箱">
+                <el-input v-model="formData.contactEmail" placeholder="请输入联系邮箱，显示在关于页面" />
+              </el-form-item>
+              
+              <el-form-item label="GitHub链接">
+                <el-input v-model="formData.githubUrl" placeholder="请输入GitHub链接，显示在关于页面" />
+              </el-form-item>
+              
+              <el-form-item label="微信号">
+                <el-input v-model="formData.wechat" placeholder="请输入微信号，显示在关于页面" />
+              </el-form-item>
+              
+              <el-form-item v-if="false">
+                <pre>{{ JSON.stringify(formData, null, 2) }}</pre>
+              </el-form-item>
+              
               <el-form-item>
-                <el-button type="primary">保存修改</el-button>
+                <el-button type="primary" @click="saveUserInfo" :loading="loading">保存修改</el-button>
+                <el-button type="warning" @click="openPasswordDialog">修改密码</el-button>
               </el-form-item>
             </el-form>
+            
+            <!-- 修改密码对话框 -->
+            <el-dialog
+              v-model="passwordDialogVisible"
+              title="修改密码"
+              width="500px"
+            >
+              <el-form
+                ref="passwordFormRef"
+                :model="passwordForm"
+                :rules="passwordRules"
+                label-width="100px"
+              >
+                <el-form-item label="当前密码" prop="oldPassword">
+                  <el-input 
+                    v-model="passwordForm.oldPassword" 
+                    type="password"
+                    placeholder="请输入当前密码"
+                    show-password
+                  />
+                </el-form-item>
+                
+                <el-form-item label="新密码" prop="newPassword">
+                  <el-input 
+                    v-model="passwordForm.newPassword" 
+                    type="password"
+                    placeholder="请输入新密码"
+                    show-password
+                  />
+                </el-form-item>
+                
+                <el-form-item label="确认密码" prop="confirmPassword">
+                  <el-input 
+                    v-model="passwordForm.confirmPassword" 
+                    type="password"
+                    placeholder="请再次输入新密码"
+                    show-password
+                  />
+                </el-form-item>
+              </el-form>
+              
+              <template #footer>
+                <el-button @click="passwordDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="submitPasswordForm" :loading="loading">
+                  确认修改
+                </el-button>
+              </template>
+            </el-dialog>
           </div>
           
           <!-- 网站信息管理 -->
@@ -1741,5 +2205,21 @@ const handleMenuSelect = (key) => {
 /* 心情选择下拉菜单样式 */
 :deep(.mood-select-dropdown) {
   max-height: 300px !important;
+}
+
+.avatar-container {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.avatar-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.avatar-input {
+  width: 300px;
 }
 </style> 

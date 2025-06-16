@@ -68,7 +68,7 @@ export const userSettingApi = {
    * @returns {Promise} 返回请求Promise
    */
   updateUserSetting: (userId, data, instance = axiosInstance) => {
-    return instance.put(`/user-settings/${userId}`, data)
+    return instance.post(`/user-settings/save`, data)
   }
 }
 
@@ -167,6 +167,15 @@ export const authApi = {
    */
   getCurrentUser: (instance = axiosInstance) => {
     return instance.get('/auth/current-user')
+  },
+  
+  /**
+   * 修改密码
+   * @param {Object} data 密码数据，包含oldPassword和newPassword
+   * @returns {Promise} 返回请求Promise
+   */
+  updatePassword: (data, instance = axiosInstance) => {
+    return instance.post('/auth/update-password', data)
   }
 }
 
