@@ -1200,7 +1200,10 @@ const saveUserInfo = async () => {
       blogIntro: formData.blogIntro || '',
       contactEmail: formData.contactEmail || formData.email || '',
       githubUrl: formData.githubUrl || '',
-      extraContacts: Object.keys(extraContactsObj).length > 0 ? JSON.stringify(extraContactsObj) : ''
+      extraContacts: Object.keys(extraContactsObj).length > 0 ? JSON.stringify(extraContactsObj) : '',
+      avatar: formData.avatar || '', // 添加头像字段
+      nickname: formData.nickname || '', // 添加昵称字段
+      phone: formData.phone || '' // 添加手机号字段
     };
     
     // 更新用户设置

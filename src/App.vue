@@ -85,9 +85,11 @@ const userAvatar = computed(() => {
         
         <div class="admin-login">
           <button class="admin-button" @click="handleAdminClick" :class="{ 'admin-avatar-button': loggedIn, 'admin-icon-button': !loggedIn }">
-            <template v-if="loggedIn">
-              <img v-if="userAvatar" :src="userAvatar" alt="用户头像" class="user-avatar" />
-              <span v-else class="avatar-placeholder">{{ userInfo?.nickname?.charAt(0) || userInfo?.username?.charAt(0) || 'U' }}</span>
+            <template v-if="loggedIn && userAvatar">
+              <img :src="userAvatar" alt="用户头像" class="user-avatar" />
+            </template>
+            <template v-else-if="loggedIn">
+              <span class="avatar-placeholder">{{ userInfo?.nickname?.charAt(0) || userInfo?.username?.charAt(0) || 'U' }}</span>
             </template>
             <template v-else>
               <svg class="user-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -248,15 +250,15 @@ header {
 }
 
 .avatar-placeholder {
-  width: 100%;
-  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #e1e1e1;
-  color: #11754b;
-  font-weight: bold;
-  font-size: 16px;
+  width: 100%;
+  height: 100%;
+  background-color: #0d5f3d;
+  color: white;
+  font-size: 18px;
+  font-weight: 500;
 }
 
 /* 移动端菜单按钮样式 */

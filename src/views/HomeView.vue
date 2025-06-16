@@ -407,7 +407,10 @@ onMounted(() => {
             </a>
           </div>
           <div class="avatar">
-            <img :src="userSetting.avatar" alt="头像">
+            <img v-if="userSetting.avatar" :src="userSetting.avatar" alt="头像">
+            <div v-else class="avatar-placeholder">
+              <span>{{ siteSettings.title?.charAt(0) || 'L' }}</span>
+            </div>
           </div>
         </div>
         
@@ -699,6 +702,22 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.avatar-placeholder {
+  background-color: #11754b;
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder span {
+  font-size: 24px;
+  font-weight: 500;
+  color: white;
 }
 
 /* 标签面板 */

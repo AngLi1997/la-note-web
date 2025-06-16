@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue'
+import { getUserInfo } from '../utils/auth.js'
 
 // 使用注入的API
 const api = inject('api')
@@ -23,8 +24,10 @@ const parsedExtraContacts = ref({})
 // 页面加载时获取用户设置
 onMounted(async () => {
   try {
-    // 这里假设默认使用ID为1的用户信息，实际使用时可以从用户登录信息中获取
+    // 默认使用ID为1的用户信息（博客主人）
     const userId = '1'
+    console.log('获取用户设置信息，用户ID:', userId)
+    
     const response = await api.user.getUserSetting(userId)
     console.log('接口返回数据:', response)
     
