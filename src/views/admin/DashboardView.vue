@@ -4,7 +4,10 @@ import { useRouter } from 'vue-router';
 import { logout, getUserInfo, getToken, setUserInfo, removeToken } from '../../utils/auth.js';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import { Document, ChatLineRound, Timer, User, Setting, SwitchButton } from '@element-plus/icons-vue';
+import { Document, ChatLineRound, Timer, User, Setting, SwitchButton, View, Hide } from '@element-plus/icons-vue';
+import MarkdownIt from 'markdown-it';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github.css'; // 导入代码高亮样式
 
 const api = inject('api');
 const router = useRouter();
@@ -15,6 +18,30 @@ const tableData = ref([]);
 const total = ref(0);
 const currentPage = ref(1);
 const pageSize = ref(10);
+
+// 初始化 markdown-it 实例
+const md = new MarkdownIt({
+  html: true,
+  linkify: true,
+  typographer: true,
+  breaks: true,
+  highlight: function (str, lang) {
+    if (lang && hljs.getLanguage(lang)) {
+      try {
+        return '<pre class="hljs"><code>' +
+               hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
+               '</code></pre>';
+      } catch (__) {}
+    }
+    // 使用默认的转义
+    return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
+  }
+});
+
+// 文章预览内容
+const articlePreview = ref('');
+// 是否显示预览
+const showPreview = ref(false);
 
 // 文章对话框相关
 const articleDialogVisible = ref(false);
@@ -1662,6 +1689,15 @@ const getMoodEmoji = (mood) => {
   };
   return defaultMoodMap[mood] || '😊';
 }
+
+// 监听文章内容变化，实时更新预览
+watch(() => articleForm.content, (newContent) => {
+  if (newContent) {
+    articlePreview.value = md.render(newContent);
+  } else {
+    articlePreview.value = '';
+  }
+}, { immediate: true });
 </script>
 
 <template>
@@ -1809,12 +1845,30 @@ const getMoodEmoji = (mood) => {
                 </el-form-item>
                 
                 <el-form-item label="内容" prop="content">
-                  <el-input 
-                    v-model="articleForm.content" 
-                    type="textarea" 
-                    :rows="8" 
-                    placeholder="请输入文章内容，支持 Markdown 格式" 
-                  />
+                  <div class="markdown-editor-container" :class="{'with-preview': showPreview}">
+                    <div class="editor-area">
+                      <div class="editor-toolbar">
+                        <el-button 
+                          type="primary" 
+                          size="small" 
+                          @click="showPreview = !showPreview"
+                          :icon="showPreview ? Hide : View"
+                        >
+                          {{ showPreview ? '关闭预览' : '显示预览' }}
+                        </el-button>
+                      </div>
+                      <el-input 
+                        v-model="articleForm.content" 
+                        type="textarea" 
+                        :rows="15" 
+                        placeholder="请输入文章内容，支持 Markdown 格式" 
+                      />
+                    </div>
+                    <div v-if="showPreview" class="preview-area">
+                      <div class="preview-header">预览</div>
+                      <div class="markdown-preview markdown-body" v-html="articlePreview"></div>
+                    </div>
+                  </div>
                 </el-form-item>
                 
                 <el-form-item label="分类">
@@ -2465,6 +2519,165 @@ const getMoodEmoji = (mood) => {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Markdown 编辑器和预览区域样式 */
+.markdown-editor-container {
+  display: flex;
+  height: 500px;
+  width: 100%;
+}
+
+.markdown-editor-container.with-preview {
+  gap: 20px;
+}
+
+.markdown-editor-container:not(.with-preview) .editor-area {
+  width: 100%;
+}
+
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.with-preview .editor-area {
+  width: 50%;
+  flex: 0 0 50%;
+}
+
+.editor-toolbar {
+  padding: 8px 0;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.editor-area :deep(.el-textarea) {
+  flex: 1;
+  display: flex;
+}
+
+.editor-area :deep(.el-textarea__inner) {
+  height: 100%;
+  width: 100%;
+  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+  line-height: 1.6;
+  resize: none;
+}
+
+.preview-area {
+  width: 50%;
+  flex: 0 0 50%;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 8px 15px;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #dcdfe6;
+  font-weight: 500;
+  color: #606266;
+}
+
+.markdown-preview {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+  background-color: #fff;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 2em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 1.5em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 1.25em;
+}
+
+.markdown-body :deep(p) {
+  margin-bottom: 16px;
+}
+
+.markdown-body :deep(a) {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+.markdown-body :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.markdown-body :deep(code) {
+  background-color: rgba(27, 31, 35, 0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+  font-size: 85%;
+}
+
+.markdown-body :deep(pre) {
+  background-color: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.markdown-body :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+  display: block;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+.markdown-body :deep(.hljs) {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 3px;
+}
+
+.markdown-body :deep(blockquote) {
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+  margin: 0 0 16px 0;
+}
+
+.markdown-body :deep(img) {
+  max-width: 100%;
+  box-sizing: content-box;
+  background-color: #fff;
+  border-radius: 3px;
+}
+
+.markdown-body :deep(ul), 
+.markdown-body :deep(ol) {
+  padding-left: 2em;
+  margin-bottom: 16px;
 }
 
 /* 心情选择下拉菜单样式 */
