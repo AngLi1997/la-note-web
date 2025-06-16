@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted, reactive, inject, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { logout, getUserInfo, getToken, setUserInfo } from '../../utils/auth.js';
+import { logout, getUserInfo, getToken, setUserInfo, removeToken } from '../../utils/auth.js';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
+import { Document, ChatLineRound, Timer, User, Setting, SwitchButton } from '@element-plus/icons-vue';
 
 const api = inject('api');
 const router = useRouter();
@@ -493,7 +494,15 @@ const getStatusText = (status) => {
 // 获取拾光列表
 const fetchComplaints = async () => {
   loading.value = true;
+  console.log('开始获取拾光列表...');
   try {
+    console.log('请求参数:', {
+      pageNum: complaintCurrentPage.value,
+      pageSize: complaintPageSize.value,
+      mood: '',
+      showAll: true
+    });
+    
     const response = await api.complaint.getComplaintsList({
       pageNum: complaintCurrentPage.value,
       pageSize: complaintPageSize.value,
@@ -501,10 +510,15 @@ const fetchComplaints = async () => {
       showAll: true // 管理页面需要查看所有状态的拾光，包括草稿
     });
     
+    console.log('拾光列表响应:', response);
+    
     if (response && response.code === 200) {
       complaintTableData.value = response.data.list || [];
       complaintTotal.value = response.data.total || 0;
+      console.log('拾光列表数据:', complaintTableData.value);
+      console.log('拾光总数:', complaintTotal.value);
     } else {
+      console.error('获取拾光列表失败:', response?.msg);
       ElMessage.error(response?.msg || '获取拾光列表失败');
     }
   } catch (error) {
@@ -1404,6 +1418,8 @@ const handleAvatarSuccess = (response, file) => {
 };
 
 onMounted(() => {
+  console.log('DashboardView组件已挂载');
+  
   // 获取用户信息
   userInfo.value = getUserInfo();
   if (!userInfo.value) {
@@ -1411,42 +1427,172 @@ onMounted(() => {
     router.push('/login');
     return;
   }
+  
+  // 初始化菜单
+  const route = window.location.hash;
+  if (route.includes('moments')) {
+    activeMenu.value = 'moments';
+    console.log('初始化拾光管理页面');
+    fetchComplaints();
+    fetchMoods();
+  } else if (route.includes('timeline')) {
+    activeMenu.value = 'timeline';
+    fetchTimelineEvents();
+    fetchTimelineCategories();
+  } else if (route.includes('profile')) {
+    activeMenu.value = 'profile';
+    fetchUserInfo();
+    setupAvatarPasteListener();
+  } else if (route.includes('site')) {
+    activeMenu.value = 'site';
+    loadSiteSettings();
+  } else {
+    // 默认显示文章管理
+    activeMenu.value = 'articles';
+    fetchArticles();
+    fetchCategoriesAndTags();
+  }
 });
 
 // 监听菜单变化
-watch(activeMenu, (newMenu, oldMenu) => {
-  console.log('菜单变化:', oldMenu, '->', newMenu);
-  if (newMenu === 'articles') {
-    fetchArticles();
-    fetchCategoriesAndTags();
-  } else if (newMenu === 'moments') {
-    fetchComplaints();
-    fetchMoods();
-  } else if (newMenu === 'timeline') {
-    fetchTimelineEvents();
-    fetchTimelineCategories();
-  } else if (newMenu === 'profile') {
-    console.log('切换到个人信息管理页面');
-    // 获取最新的用户信息
-    fetchUserInfo();
-    // 设置头像粘贴事件监听
-    setupAvatarPasteListener();
-  } else {
-    // 移除头像粘贴事件监听
-    removeAvatarPasteListener();
-  }
-}, { immediate: true });
+watch(
+  () => activeMenu.value,
+  (newMenu) => {
+    console.log('菜单变化:', newMenu);
+    if (newMenu === 'articles') {
+      fetchArticles();
+      fetchCategoriesAndTags();
+    } else if (newMenu === 'complaints' || newMenu === 'moments') {
+      fetchComplaints();
+      fetchMoods();
+    } else if (newMenu === 'timeline') {
+      fetchTimelineEvents();
+      fetchTimelineCategories();
+    } else if (newMenu === 'profile') {
+      console.log('切换到个人信息管理页面');
+      // 获取最新的用户信息
+      fetchUserInfo();
+      // 设置头像粘贴事件监听
+      setupAvatarPasteListener();
+    } else if (newMenu === 'site') {
+      loadSiteSettings();
+    }
+    
+    // 如果不是个人信息页面，移除头像粘贴事件监听
+    if (newMenu !== 'profile') {
+      removeAvatarPasteListener();
+    }
+  },
+  { immediate: true }
+)
 
 const handleLogout = () => {
-  logout();
-  userInfo.value = null; // 确保本地状态也被清除
-  ElMessage.success('已成功退出登录');
-  router.push('/');
+  ElMessageBox.confirm('确定要退出登录吗?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    removeToken()
+    router.push('/')
+    ElMessage.success('已成功退出登录')
+  }).catch(() => {})
+}
+
+// 切换菜单
+const handleMenuSelect = (key) => {
+  console.log('菜单切换:', key);
+  activeMenu.value = key;
+  
+  // 根据菜单项加载不同数据
+  if (key === 'articles') {
+    fetchArticles();
+    fetchCategoriesAndTags();
+  } else if (key === 'moments' || key === 'complaints') {
+    // 兼容两种菜单键名
+    activeMenu.value = 'moments';
+    console.log('切换到拾光管理页面');
+    fetchComplaints();
+    fetchMoods();
+  } else if (key === 'timeline') {
+    fetchTimelineEvents();
+    fetchTimelineCategories();
+  } else if (key === 'profile') {
+    fetchUserInfo();
+    setupAvatarPasteListener();
+  } else if (key === 'site') {
+    loadSiteSettings();
+  }
 };
 
-const handleMenuSelect = (key) => {
-  activeMenu.value = key;
-};
+// 网站设置
+const siteSettings = ref({
+  id: '',
+  title: '',
+  subtitle: '',
+  description: '',
+  slogan: '',
+  keywords: '',
+  footer: '',
+  icp: '',
+  socialLinks: []
+})
+
+// 原始网站设置数据，用于重置
+const originalSiteSettings = ref({})
+
+// 加载网站设置
+const loadSiteSettings = async () => {
+  try {
+    loading.value = true
+    console.log('正在获取网站设置...')
+    const response = await api.site.getSiteSetting()
+    console.log('获取网站设置响应:', response)
+    
+    if (response && response.code === 200 && response.data) {
+      siteSettings.value = response.data
+      // 保存原始数据，用于重置
+      originalSiteSettings.value = JSON.parse(JSON.stringify(response.data))
+      console.log('网站设置加载成功:', siteSettings.value)
+    } else {
+      ElMessage.warning('获取网站设置失败')
+    }
+  } catch (error) {
+    console.error('获取网站设置出错:', error)
+    ElMessage.error('获取网站设置出错')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 保存网站设置
+const saveSiteSettings = async () => {
+  try {
+    loading.value = true
+    console.log('正在保存网站设置:', siteSettings.value)
+    
+    const response = await api.site.updateSiteSetting(siteSettings.value)
+    console.log('保存网站设置响应:', response)
+    
+    if (response && response.code === 200) {
+      ElMessage.success('网站设置保存成功')
+      // 更新原始数据
+      originalSiteSettings.value = JSON.parse(JSON.stringify(siteSettings.value))
+    } else {
+      ElMessage.error('网站设置保存失败')
+    }
+  } catch (error) {
+    console.error('保存网站设置出错:', error)
+    ElMessage.error('保存网站设置出错')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 重置网站设置
+const resetSiteSettings = () => {
+  siteSettings.value = JSON.parse(JSON.stringify(originalSiteSettings.value))
+  ElMessage.info('已重置为上次保存的设置')
+}
 </script>
 
 <template>
@@ -1462,21 +1608,36 @@ const handleMenuSelect = (key) => {
       </el-header>
       
       <el-container class="main-container">
-        <!-- 左侧菜单 -->
-        <el-aside width="220px" class="menu-aside">
-          <el-menu
-            :default-active="activeMenu"
-            class="el-menu-vertical"
-            @select="handleMenuSelect"
-            background-color="#fff"
-            text-color="#606266"
-            active-text-color="#11754b"
-          >
-            <el-menu-item v-for="item in menuItems" :key="item.key" :index="item.key">
-              <el-icon><component :is="item.icon" /></el-icon>
-              <span>{{ item.label }}</span>
-            </el-menu-item>
-          </el-menu>
+        <!-- 侧边栏 -->
+        <el-aside width="200px" class="dashboard-aside">
+          <div class="menu-container">            
+            <el-menu
+              :default-active="activeMenu"
+              class="dashboard-menu"
+              @select="handleMenuSelect"
+            >
+              <el-menu-item index="articles">
+                <el-icon><document /></el-icon>
+                <span>文章管理</span>
+              </el-menu-item>
+              <el-menu-item index="complaints">
+                <el-icon><chatLineRound /></el-icon>
+                <span>拾光管理</span>
+              </el-menu-item>
+              <el-menu-item index="timeline">
+                <el-icon><timer /></el-icon>
+                <span>时光轴管理</span>
+              </el-menu-item>
+              <el-menu-item index="profile">
+                <el-icon><user /></el-icon>
+                <span>个人信息管理</span>
+              </el-menu-item>
+              <el-menu-item index="site">
+                <el-icon><setting /></el-icon>
+                <span>网站信息管理</span>
+              </el-menu-item>
+            </el-menu>
+          </div>
         </el-aside>
         
         <!-- 右侧内容区 -->
@@ -1736,101 +1897,10 @@ const handleMenuSelect = (key) => {
               />
             </div>
             
-            <!-- 新增/编辑拾光对话框 -->
-            <el-dialog
-              v-model="complaintDialogVisible"
-              :title="isEditComplaint ? '编辑拾光' : '新增拾光'"
-              width="70%"
-              :close-on-click-modal="false"
-              @closed="handleComplaintDialogClose"
-            >
-              <el-form
-                ref="complaintFormRef"
-                :model="complaintForm"
-                :rules="complaintFormRules"
-                label-width="100px"
-              >
-                <el-form-item label="标题" prop="title">
-                  <el-input v-model="complaintForm.title" placeholder="请输入拾光标题" />
-                </el-form-item>
-                
-                <el-form-item label="内容" prop="content">
-                  <el-input 
-                    v-model="complaintForm.content" 
-                    type="textarea" 
-                    :rows="5" 
-                    placeholder="请输入拾光内容" 
-                  />
-                </el-form-item>
-                
-                <el-form-item label="心情标签" prop="mood">
-                  <el-select 
-                    v-model="complaintForm.mood" 
-                    placeholder="请选择心情标签"
-                    filterable
-                    :allow-create="false"
-                    style="width: 100%"
-                    popper-class="mood-select-dropdown"
-                  >
-                    <el-option 
-                      v-for="mood in moodOptions" 
-                      :key="mood" 
-                      :label="mood" 
-                      :value="mood" 
-                    />
-                  </el-select>
-                  <span class="form-tip">请从列表中选择心情标签，可用选项: {{ moodOptions.join(', ') }}</span>
-                </el-form-item>
-                
-                <el-form-item label="图片URL">
-                  <el-input 
-                    ref="imageInputRef"
-                    v-model="imageUrl"
-                    placeholder="请输入图片URL或直接粘贴图片" 
-                    :loading="uploadLoading"
-                    @keyup.enter="addImageUrl"
-                  >
-                    <template #append>
-                      <el-button @click="addImageUrl">添加</el-button>
-                    </template>
-                  </el-input>
-                  <span class="form-tip">支持直接粘贴图片，自动上传，或输入URL后按回车/点击添加</span>
-                </el-form-item>
-                
-                <el-form-item label="图片">
-                  <el-upload
-                    action="/api/file/upload"
-                    :headers="{ 'Authorization': 'Bearer ' + getToken() }"
-                    list-type="picture-card"
-                    :file-list="fileList"
-                    :on-success="handleUploadSuccess"
-                    :before-upload="beforeUpload"
-                    :on-remove="handleRemove"
-                    multiple
-                    :limit="9"
-                  >
-                    <el-icon><Plus /></el-icon>
-                    <template #tip>
-                      <div class="form-tip">支持多张图片上传，单张图片不超过2MB</div>
-                    </template>
-                  </el-upload>
-                </el-form-item>
-                
-                <el-form-item label="状态">
-                  <el-radio-group v-model="complaintForm.status">
-                    <el-radio :label="0">草稿</el-radio>
-                    <el-radio :label="1">发布</el-radio>
-                  </el-radio-group>
-                </el-form-item>
-              </el-form>
-              
-              <template #footer>
-                <el-button @click="complaintDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="submitComplaintForm" :loading="loading">
-                  保存
-                </el-button>
-              </template>
-            </el-dialog>
+            <div v-if="complaintTableData.length === 0 && !loading" class="empty-data">
+              <p>暂无拾光数据</p>
+              <el-button type="primary" @click="handleAddComplaint">新增拾光</el-button>
+            </div>
           </div>
           
           <!-- 时光轴管理 -->
@@ -2104,24 +2174,140 @@ const handleMenuSelect = (key) => {
           <!-- 网站信息管理 -->
           <div v-if="activeMenu === 'site'" class="form-container">
             <h2>网站信息管理</h2>
-            <el-form :model="formData" label-width="120px" class="admin-form">
-              <el-form-item label="网站名称">
-                <el-input v-model="formData.name" />
+            <el-form v-loading="loading" :model="siteSettings" label-width="120px" class="admin-form">
+              <el-form-item label="网站标题">
+                <el-input v-model="siteSettings.title" placeholder="请输入网站标题" />
               </el-form-item>
+              
+              <el-form-item label="网站副标题">
+                <el-input v-model="siteSettings.subtitle" placeholder="请输入网站副标题" />
+              </el-form-item>
+              
               <el-form-item label="网站描述">
-                <el-input v-model="formData.bio" type="textarea" :rows="4" />
+                <el-input v-model="siteSettings.description" type="textarea" :rows="4" placeholder="请输入网站描述，用于SEO优化" />
               </el-form-item>
-              <el-form-item label="ICP备案号">
-                <el-input v-model="formData.email" />
+              
+              <el-form-item label="网站标语">
+                <el-input v-model="siteSettings.slogan" placeholder="请输入网站标语/口号" />
               </el-form-item>
+              
+              <el-form-item label="网站关键词">
+                <el-input v-model="siteSettings.keywords" placeholder="请输入网站关键词，多个关键词用逗号分隔" />
+              </el-form-item>
+              
+              <el-form-item label="网站页脚">
+                <el-input v-model="siteSettings.footer" placeholder="请输入网站页脚内容，支持HTML" />
+              </el-form-item>
+              
+              <el-form-item label="备案信息">
+                <el-input v-model="siteSettings.icp" placeholder="请输入ICP备案号" />
+              </el-form-item>
+              
               <el-form-item>
-                <el-button type="primary">保存修改</el-button>
+                <el-button type="primary" @click="saveSiteSettings" :loading="loading">保存修改</el-button>
+                <el-button @click="resetSiteSettings">重置</el-button>
               </el-form-item>
             </el-form>
           </div>
         </el-main>
       </el-container>
     </el-container>
+    
+    <!-- 新增/编辑拾光对话框 -->
+    <el-dialog
+      v-model="complaintDialogVisible"
+      :title="isEditComplaint ? '编辑拾光' : '新增拾光'"
+      width="70%"
+      :close-on-click-modal="false"
+      @closed="handleComplaintDialogClose"
+    >
+      <el-form
+        ref="complaintFormRef"
+        :model="complaintForm"
+        :rules="complaintFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="标题" prop="title">
+          <el-input v-model="complaintForm.title" placeholder="请输入拾光标题" />
+        </el-form-item>
+        
+        <el-form-item label="内容" prop="content">
+          <el-input 
+            v-model="complaintForm.content" 
+            type="textarea" 
+            :rows="5" 
+            placeholder="请输入拾光内容" 
+          />
+        </el-form-item>
+        
+        <el-form-item label="心情标签" prop="mood">
+          <el-select 
+            v-model="complaintForm.mood" 
+            placeholder="请选择心情标签"
+            filterable
+            :allow-create="false"
+            style="width: 100%"
+            popper-class="mood-select-dropdown"
+          >
+            <el-option 
+              v-for="mood in moodOptions" 
+              :key="mood" 
+              :label="mood" 
+              :value="mood" 
+            />
+          </el-select>
+          <span class="form-tip">请从列表中选择心情标签，可用选项: {{ moodOptions.join(', ') }}</span>
+        </el-form-item>
+        
+        <el-form-item label="图片URL">
+          <el-input 
+            ref="imageInputRef"
+            v-model="imageUrl"
+            placeholder="请输入图片URL或直接粘贴图片" 
+            :loading="uploadLoading"
+            @keyup.enter="addImageUrl"
+          >
+            <template #append>
+              <el-button @click="addImageUrl">添加</el-button>
+            </template>
+          </el-input>
+          <span class="form-tip">支持直接粘贴图片，自动上传，或输入URL后按回车/点击添加</span>
+        </el-form-item>
+        
+        <el-form-item label="图片">
+          <el-upload
+            action="/api/file/upload"
+            :headers="{ 'Authorization': 'Bearer ' + getToken() }"
+            list-type="picture-card"
+            :file-list="fileList"
+            :on-success="handleUploadSuccess"
+            :before-upload="beforeUpload"
+            :on-remove="handleRemove"
+            multiple
+            :limit="9"
+          >
+            <el-icon><Plus /></el-icon>
+            <template #tip>
+              <div class="form-tip">支持多张图片上传，单张图片不超过2MB</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+        
+        <el-form-item label="状态">
+          <el-radio-group v-model="complaintForm.status">
+            <el-radio :label="0">草稿</el-radio>
+            <el-radio :label="1">发布</el-radio>
+          </el-radio-group>
+        </el-form-item>
+      </el-form>
+      
+      <template #footer>
+        <el-button @click="complaintDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitComplaintForm" :loading="loading">
+          保存
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -2155,13 +2341,14 @@ const handleMenuSelect = (key) => {
   gap: 15px;
 }
 
-.menu-aside {
-  background-color: white;
+.dashboard-aside {
+  background-color: #fff;
   border-right: 1px solid #e6e6e6;
 }
 
 .content-main {
   padding: 20px;
+  background-color: #fff;
 }
 
 .action-bar {
@@ -2224,5 +2411,48 @@ const handleMenuSelect = (key) => {
 
 .avatar-input {
   width: 300px;
+}
+
+.menu-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-info {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+}
+
+.user-details {
+  margin-left: 10px;
+}
+
+.username {
+  font-weight: 500;
+  font-size: 16px;
+}
+
+.role {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.dashboard-menu {
+  flex: 1;
+  border-right: none;
+}
+
+.content-container {
+  padding: 20px;
+}
+
+.empty-data {
+  text-align: center;
+  margin-top: 20px;
+  color: #909399;
 }
 </style> 

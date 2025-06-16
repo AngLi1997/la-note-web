@@ -2,6 +2,8 @@
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { isLoggedIn, logout, getUserInfo } from './utils/auth.js';
+import { ElMessageBox } from 'element-plus';
+import { inject } from 'vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -9,19 +11,33 @@ const loggedIn = ref(false);
 const userInfo = ref(null);
 const mobileMenuOpen = ref(false);
 
+// 使用注入的API
+const api = inject('api');
+
+// 网站设置
+const siteSettings = ref({
+  title: 'Liang\'s Note',
+  subtitle: '个人技术博客',
+  description: '',
+  slogan: '',
+  keywords: '',
+  footer: '© 2025 liang-note. 保留所有权利。',
+  icp: '',
+  socialLinks: []
+});
+
 // 检查登录状态
 const checkLoginStatus = () => {
   loggedIn.value = isLoggedIn();
   if (loggedIn.value) {
     userInfo.value = getUserInfo();
-  } else {
-    userInfo.value = null;
   }
 };
 
 // 页面加载时检查登录状态
 onMounted(() => {
   checkLoginStatus();
+  loadSiteSettings();
 });
 
 // 监听路由变化，重新检查登录状态
@@ -31,21 +47,38 @@ watch(() => route.path, () => {
   mobileMenuOpen.value = false;
 });
 
+// 加载网站设置
+const loadSiteSettings = async () => {
+  try {
+    const response = await api.site.getSiteSetting();
+    if (response && response.code === 200 && response.data) {
+      siteSettings.value = response.data;
+    }
+  } catch (error) {
+    console.error('获取网站设置出错:', error);
+  }
+};
+
 // 处理登出
 const handleLogout = () => {
-  logout();
-  loggedIn.value = false;
-  userInfo.value = null;
-  router.push('/');
+  ElMessageBox.confirm('确定要退出登录吗?', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    logout();
+    loggedIn.value = false;
+    userInfo.value = null;
+    router.push('/');
+  }).catch(() => {});
 };
 
 // 处理管理员按钮点击
 const handleAdminClick = () => {
-  // 根据登录状态决定跳转到仪表板还是登录页
   if (loggedIn.value) {
-    router.push('/admin/dashboard');
+    router.push('/admin');
   } else {
-    router.push('/admin/login');
+    router.push('/login');
   }
 };
 
@@ -65,7 +98,7 @@ const userAvatar = computed(() => {
     <header>
       <div class="header-content">
         <router-link to="/" class="logo-link">
-          <h1 class="logo">Liang's Note</h1>
+          <h1 class="logo">{{ siteSettings.title }}</h1>
         </router-link>
         
         <!-- 移动端菜单按钮 -->
@@ -111,7 +144,8 @@ const userAvatar = computed(() => {
     </main>
     
     <footer>
-      <p>© {{ new Date().getFullYear() }} liang-note. 保留所有权利。</p>
+      <div class="footer-content" v-html="siteSettings.footer"></div>
+      <div v-if="siteSettings.icp" class="icp-info">{{ siteSettings.icp }}</div>
     </footer>
   </div>
 </template>
@@ -294,6 +328,27 @@ footer {
   background-color: #f5f5f5;
   text-align: center;
   color: #666;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.footer-content :deep(a) {
+  color: #11754b;
+  text-decoration: none;
+}
+
+.footer-content :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.icp-info {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #999;
 }
 
 /* 移动端适配 */
