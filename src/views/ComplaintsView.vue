@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch, inject, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import ComplaintListItem from '../components/ComplaintListItem.vue'
+import { getMoodEmoji } from '../utils/moodUtils'
 
 // 使用注入的API
 const api = inject('api')
@@ -184,7 +185,7 @@ onMounted(() => {
             :class="{ active: currentMood === mood }"
             @click="setMood(mood)"
           >
-            {{ mood }}
+            {{ getMoodEmoji(mood).emoji }} {{ mood }}
           </div>
         </div>
       </div>
@@ -321,6 +322,7 @@ onMounted(() => {
 .mood-tag {
   display: flex;
   align-items: center;
+  gap: 5px;
 }
 
 .complaints-container {

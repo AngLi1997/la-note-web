@@ -532,26 +532,76 @@ const fetchComplaints = async () => {
 // 获取心情标签
 const fetchMoods = async () => {
   try {
-    // 先设置默认的心情标签列表
-    const defaultMoods = ['开心', '难过', '平静', '兴奋', '疲惫', '感动', '思考', '发呆', '抓狂', '生气', '崩溃', '摆烂'];
-    moodOptions.value = [...defaultMoods];
+    // 设置默认的心情标签列表（文字和对应的emoji）
+    const defaultMoodMap = {
+      '开心': '😄',
+      '难过': '😢',
+      '平静': '😌',
+      '兴奋': '🤩',
+      '疲惫': '😪',
+      '感动': '🥹',
+      '思考': '🤔',
+      '发呆': '😶',
+      '抓狂': '😫',
+      '生气': '😠',
+      '崩溃': '😱',
+      '摆烂': '🫠'
+    };
+    
+    // 将映射转换为选项数组
+    moodOptions.value = Object.entries(defaultMoodMap).map(([text, emoji]) => ({
+      label: `${emoji} ${text}`,
+      value: text,
+      emoji: emoji
+    }));
     
     // 尝试从后端获取心情标签
     const response = await api.complaint.getMoods();
     if (response && response.code === 200 && response.data && Array.isArray(response.data) && response.data.length > 0) {
-      // 如果后端返回了标签，合并默认标签和后端标签，确保不重复
+      // 如果后端返回了标签，处理并添加emoji
       const backendMoods = response.data;
-      const allMoods = new Set([...defaultMoods, ...backendMoods]);
-      moodOptions.value = Array.from(allMoods);
+      backendMoods.forEach(mood => {
+        // 如果该心情不在默认映射中，添加一个默认emoji
+        if (!defaultMoodMap[mood]) {
+          moodOptions.value.push({
+            label: `😊 ${mood}`,
+            value: mood,
+            emoji: '😊'
+          });
+        }
+      });
     }
     
     // 最后检查确保心情标签列表不为空
     if (!moodOptions.value || !Array.isArray(moodOptions.value) || moodOptions.value.length === 0) {
-      moodOptions.value = [...defaultMoods];
+      moodOptions.value = Object.entries(defaultMoodMap).map(([text, emoji]) => ({
+        label: `${emoji} ${text}`,
+        value: text,
+        emoji: emoji
+      }));
     }
   } catch (error) {
+    console.error('获取心情标签失败:', error);
     // 出错时确保有默认标签
-    moodOptions.value = ['开心', '难过', '平静', '兴奋', '疲惫', '感动', '思考', '发呆', '抓狂', '生气', '崩溃', '摆烂'];
+    const defaultMoodMap = {
+      '开心': '😄',
+      '难过': '😢',
+      '平静': '😌',
+      '兴奋': '🤩',
+      '疲惫': '😪',
+      '感动': '🥹',
+      '思考': '🤔',
+      '发呆': '😶',
+      '抓狂': '😫',
+      '生气': '😠',
+      '崩溃': '😱',
+      '摆烂': '🫠'
+    };
+    moodOptions.value = Object.entries(defaultMoodMap).map(([text, emoji]) => ({
+      label: `${emoji} ${text}`,
+      value: text,
+      emoji: emoji
+    }));
   }
 };
 
@@ -1593,6 +1643,25 @@ const resetSiteSettings = () => {
   siteSettings.value = JSON.parse(JSON.stringify(originalSiteSettings.value))
   ElMessage.info('已重置为上次保存的设置')
 }
+
+// 获取心情标签对应的emoji
+const getMoodEmoji = (mood) => {
+  const defaultMoodMap = {
+    '开心': '😄',
+    '难过': '😢',
+    '平静': '😌',
+    '兴奋': '🤩',
+    '疲惫': '😪',
+    '感动': '🥹',
+    '思考': '🤔',
+    '发呆': '😶',
+    '抓狂': '😫',
+    '生气': '😠',
+    '崩溃': '😱',
+    '摆烂': '🫠'
+  };
+  return defaultMoodMap[mood] || '😊';
+}
 </script>
 
 <template>
@@ -1852,7 +1921,13 @@ const resetSiteSettings = () => {
                   </el-tooltip>
                 </template>
               </el-table-column>
-              <el-table-column prop="mood" label="心情" width="100" />
+              <el-table-column prop="mood" label="心情" width="100">
+                <template #default="scope">
+                  <span class="mood-tag">
+                    {{ getMoodEmoji(scope.row.mood) }} {{ scope.row.mood }}
+                  </span>
+                </template>
+              </el-table-column>
               <el-table-column label="发布日期" width="180">
                 <template #default="scope">
                   {{ new Date(scope.row.createTime).toLocaleString() }}
@@ -2251,12 +2326,12 @@ const resetSiteSettings = () => {
           >
             <el-option 
               v-for="mood in moodOptions" 
-              :key="mood" 
-              :label="mood" 
-              :value="mood" 
+              :key="mood.value" 
+              :label="mood.label" 
+              :value="mood.value" 
             />
           </el-select>
-          <span class="form-tip">请从列表中选择心情标签，可用选项: {{ moodOptions.join(', ') }}</span>
+          <span class="form-tip">请从列表中选择心情标签</span>
         </el-form-item>
         
         <el-form-item label="图片URL">
@@ -2454,5 +2529,11 @@ const resetSiteSettings = () => {
   text-align: center;
   margin-top: 20px;
   color: #909399;
+}
+
+.mood-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 </style> 
