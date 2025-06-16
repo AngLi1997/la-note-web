@@ -810,8 +810,44 @@ onMounted(() => {
     grid-template-columns: 1fr;
     grid-template-areas: 
       "nav"
-      "articles"
-      "sidebar";
+      "sidebar"
+      "articles";
+  }
+  
+  /* 调整侧边栏在移动端的样式 */
+  .sidebar {
+    margin-bottom: 20px;
+  }
+  
+  .intro-card {
+    padding: 20px;
+  }
+  
+  .intro-card h1 {
+    font-size: 22px;
+    margin-bottom: 15px;
+  }
+  
+  .avatar {
+    width: 60px;
+    height: 60px;
+    bottom: 15px;
+    right: 15px;
+  }
+  
+  /* 调整标签面板在移动端的样式 */
+  .tags-panel {
+    padding: 15px;
+  }
+  
+  .panel-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  /* 调整文章列表在移动端的样式 */
+  .article-list {
+    gap: 10px;
   }
 }
 </style> 
