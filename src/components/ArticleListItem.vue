@@ -86,7 +86,7 @@ defineEmits(['click'])
 </script>
 
 <template>
-  <div class="article-list-item" @click="$emit('click')" :class="{ 'no-thumbnail': !hasCoverImage }">
+  <div class="article-list-item" @click="$emit('click')">
     <div v-if="hasCoverImage" class="article-image" @click.stop="handleImageClick">
       <img :src="coverImage" :alt="article.title"/>
     </div>
@@ -125,6 +125,7 @@ defineEmits(['click'])
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   align-items: center;
+  position: relative;
 }
 
 .article-list-item:hover {
@@ -132,11 +133,7 @@ defineEmits(['click'])
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.article-list-item.no-thumbnail {
-  position: relative;
-}
-
-.article-list-item.no-thumbnail::before {
+.article-list-item::before {
   content: '';
   position: absolute;
   left: 0;
@@ -155,6 +152,7 @@ defineEmits(['click'])
   background-color: #f5f5f5;
   position: relative;
   cursor: zoom-in;
+  margin-left: 6px;
 }
 
 .article-image img {
@@ -247,7 +245,7 @@ defineEmits(['click'])
     height: 80px;
   }
   
-  .article-list-item.no-thumbnail::before {
+  .article-list-item::before {
     width: 3px;
   }
 }
