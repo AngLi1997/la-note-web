@@ -9,9 +9,51 @@ const props = defineProps({
   }
 })
 
-// 检查文章是否有有效的缩略图
-const hasThumbnail = computed(() => {
-  return props.article.thumbnail && typeof props.article.thumbnail === 'string' && props.article.thumbnail.trim() !== '';
+// 从Markdown内容中提取第一张图片URL
+const extractFirstImageFromMarkdown = (markdown) => {
+  if (!markdown) return null
+  
+  // 匹配Markdown图片语法 ![alt](url)
+  const markdownImageRegex = /!\[.*?\]\((.*?)\)/
+  const markdownMatch = markdown.match(markdownImageRegex)
+  
+  if (markdownMatch && markdownMatch[1]) {
+    return markdownMatch[1]
+  }
+  
+  // 匹配HTML图片标签 <img src="url" />
+  const htmlImageRegex = /<img.*?src=["'](.*?)["'].*?>/
+  const htmlMatch = markdown.match(htmlImageRegex)
+  
+  if (htmlMatch && htmlMatch[1]) {
+    return htmlMatch[1]
+  }
+  
+  return null
+}
+
+// 获取封面图片：优先使用设置的缩略图，其次从正文提取第一张图片
+const coverImage = computed(() => {
+  // 如果有设置缩略图，则使用缩略图
+  if (props.article.thumbnail && typeof props.article.thumbnail === 'string' && props.article.thumbnail.trim() !== '') {
+    return props.article.thumbnail
+  }
+  
+  // 否则尝试从正文中提取第一张图片
+  if (props.article.content) {
+    const extractedImage = extractFirstImageFromMarkdown(props.article.content)
+    if (extractedImage) {
+      return extractedImage
+    }
+  }
+  
+  // 都没有则返回null
+  return null
+})
+
+// 检查文章是否有有效的封面图
+const hasCoverImage = computed(() => {
+  return coverImage.value !== null
 })
 
 // 处理不同格式的标签（字符串或数组）
@@ -29,8 +71,8 @@ const previewImages = ref([])
 // 点击图片时预览
 const handleImageClick = (event) => {
   event.stopPropagation() // 阻止冒泡，避免触发文章点击事件
-  if (hasThumbnail.value) {
-    previewImages.value = [props.article.thumbnail]
+  if (hasCoverImage.value) {
+    previewImages.value = [coverImage.value]
     showViewer.value = true
   }
 }
@@ -44,9 +86,9 @@ defineEmits(['click'])
 </script>
 
 <template>
-  <div class="article-list-item" @click="$emit('click')" :class="{ 'no-thumbnail': !hasThumbnail }">
-    <div v-if="hasThumbnail" class="article-image" @click.stop="handleImageClick">
-      <img :src="article.thumbnail" :alt="article.title"/>
+  <div class="article-list-item" @click="$emit('click')" :class="{ 'no-thumbnail': !hasCoverImage }">
+    <div v-if="hasCoverImage" class="article-image" @click.stop="handleImageClick">
+      <img :src="coverImage" :alt="article.title"/>
     </div>
     <div class="article-content">
       <h2 class="article-title">{{ article.title }}</h2>
