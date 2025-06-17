@@ -1845,18 +1845,19 @@ watch(() => articleForm.content, (newContent) => {
                 </el-form-item>
                 
                 <el-form-item label="内容" prop="content">
-                  <div class="markdown-editor-container" :class="{'with-preview': showPreview}">
-                    <div class="editor-area">
-                      <div class="editor-toolbar">
-                        <el-button 
-                          type="primary" 
-                          size="small" 
-                          @click="showPreview = !showPreview"
-                          :icon="showPreview ? Hide : View"
-                        >
-                          {{ showPreview ? '关闭预览' : '显示预览' }}
-                        </el-button>
-                      </div>
+                  <div class="markdown-editor-container">
+                    <div class="editor-toolbar">
+                      <el-button 
+                        type="primary" 
+                        size="small" 
+                        @click="showPreview = !showPreview"
+                        :icon="showPreview ? Hide : View"
+                      >
+                        {{ showPreview ? '返回编辑' : '预览' }}
+                      </el-button>
+                    </div>
+                    
+                    <div v-if="!showPreview" class="editor-area">
                       <el-input 
                         v-model="articleForm.content" 
                         type="textarea" 
@@ -1864,8 +1865,8 @@ watch(() => articleForm.content, (newContent) => {
                         placeholder="请输入文章内容，支持 Markdown 格式" 
                       />
                     </div>
-                    <div v-if="showPreview" class="preview-area">
-                      <div class="preview-header">预览</div>
+                    
+                    <div v-else class="preview-area">
                       <div class="markdown-preview markdown-body" v-html="articlePreview"></div>
                     </div>
                   </div>
@@ -2524,27 +2525,9 @@ watch(() => articleForm.content, (newContent) => {
 /* Markdown 编辑器和预览区域样式 */
 .markdown-editor-container {
   display: flex;
+  flex-direction: column;
   height: 500px;
   width: 100%;
-}
-
-.markdown-editor-container.with-preview {
-  gap: 20px;
-}
-
-.markdown-editor-container:not(.with-preview) .editor-area {
-  width: 100%;
-}
-
-.editor-area {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.with-preview .editor-area {
-  width: 50%;
-  flex: 0 0 50%;
 }
 
 .editor-toolbar {
@@ -2554,9 +2537,19 @@ watch(() => articleForm.content, (newContent) => {
   margin-bottom: 8px;
 }
 
+.editor-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
 .editor-area :deep(.el-textarea) {
   flex: 1;
   display: flex;
+  height: 100%;
 }
 
 .editor-area :deep(.el-textarea__inner) {
@@ -2565,11 +2558,13 @@ watch(() => articleForm.content, (newContent) => {
   font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
   line-height: 1.6;
   resize: none;
+  padding: 15px;
+  border: none;
+  border-radius: 0;
 }
 
 .preview-area {
-  width: 50%;
-  flex: 0 0 50%;
+  flex: 1;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   display: flex;
@@ -2577,19 +2572,18 @@ watch(() => articleForm.content, (newContent) => {
   overflow: hidden;
 }
 
-.preview-header {
-  padding: 8px 15px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #dcdfe6;
-  font-weight: 500;
-  color: #606266;
-}
-
 .markdown-preview {
   flex: 1;
   padding: 15px;
   overflow-y: auto;
   background-color: #fff;
+  line-height: 1.6;
+  color: #333;
+  font-size: 14px;
+}
+
+.markdown-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 .markdown-body :deep(h1),
@@ -2599,6 +2593,7 @@ watch(() => articleForm.content, (newContent) => {
   margin-bottom: 16px;
   font-weight: 600;
   line-height: 1.25;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 .markdown-body :deep(h1) {
@@ -2619,6 +2614,7 @@ watch(() => articleForm.content, (newContent) => {
 
 .markdown-body :deep(p) {
   margin-bottom: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 .markdown-body :deep(a) {
@@ -2665,6 +2661,7 @@ watch(() => articleForm.content, (newContent) => {
   color: #6a737d;
   border-left: 0.25em solid #dfe2e5;
   margin: 0 0 16px 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 .markdown-body :deep(img) {
@@ -2678,6 +2675,7 @@ watch(() => articleForm.content, (newContent) => {
 .markdown-body :deep(ol) {
   padding-left: 2em;
   margin-bottom: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
 /* 心情选择下拉菜单样式 */
