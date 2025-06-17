@@ -33,8 +33,9 @@ const viewComplaint = (id) => {
   router.push({ name: 'moment', params: { id } })
 }
 
+// 修改为使用字符串而非null，与时间轴模块保持一致
 const currentType = ref(null)
-const currentMood = ref(null)
+const currentMood = ref('all')
 
 // 处理文章数据，确保每个文章都有正确的图片信息
 const processComplaintData = (complaint) => {
@@ -73,8 +74,8 @@ const fetchComplaints = async () => {
       params.type = currentType.value
     }
     
-    // 添加心情筛选
-    if (currentMood.value) {
+    // 添加心情筛选 - 如果不是"全部"才添加参数
+    if (currentMood.value && currentMood.value !== 'all') {
       params.mood = currentMood.value
     }
     
@@ -155,7 +156,13 @@ const setType = (type) => {
 }
 
 const setMood = (mood) => {
-  currentMood.value = mood === currentMood.value ? null : mood
+  // 如果已经选中"全部"按钮或者点击的就是"全部"按钮，不做任何操作
+  if (mood === 'all' && currentMood.value === 'all') {
+    return
+  }
+  
+  // 设置当前选中的心情
+  currentMood.value = mood
   currentPage.value = 1   // 重置为第一页
 }
 
@@ -181,6 +188,15 @@ onMounted(() => {
       
       <!-- 筛选器 -->
       <div class="filter-container">
+        <!-- 添加"全部"按钮 -->
+        <div 
+          class="filter-item"
+          :class="{ 'active': currentMood === 'all' }"
+          @click="setMood('all')"
+        >
+          全部
+        </div>
+        
         <div 
           v-for="mood in moods" 
           :key="mood" 

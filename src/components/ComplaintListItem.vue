@@ -41,7 +41,7 @@ const hasImage = computed(() => {
 </script>
 
 <template>
-  <div class="complaint-item" @click="handleClick" :class="{ 'no-image': !hasImage }">
+  <div class="complaint-item" @click="handleClick">
     <div class="complaint-content">
       <div class="complaint-header">
         <div class="complaint-mood" :style="{ backgroundColor: moodEmoji.color }">
@@ -74,6 +74,7 @@ const hasImage = computed(() => {
   display: flex;
   cursor: pointer;
   padding: 16px;
+  position: relative;
 }
 
 .complaint-item:hover {
@@ -81,11 +82,7 @@ const hasImage = computed(() => {
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
-.complaint-item.no-image {
-  position: relative;
-}
-
-.complaint-item.no-image::before {
+.complaint-item::before {
   content: '';
   position: absolute;
   left: 0;
@@ -186,7 +183,7 @@ const hasImage = computed(() => {
     font-size: 13px;
   }
   
-  .complaint-item.no-image::before {
+  .complaint-item::before {
     width: 3px;
   }
 }
