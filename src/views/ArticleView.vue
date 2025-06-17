@@ -2,7 +2,7 @@
 import { ref, onMounted, inject, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElMessage, ElLoading, ElImageViewer } from 'element-plus'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css' // 导入一个代码高亮主题，可以选择其他主题
 
@@ -11,6 +11,12 @@ const route = useRoute()
 const router = useRouter()
 const article = ref(null)
 const loading = ref(false)
+
+// 图片预览相关
+const showViewer = ref(false)
+const previewImages = ref([])
+const previewIndex = ref(0)
+
 const md = new MarkdownIt({
   html: true,
   linkify: true,
@@ -77,6 +83,36 @@ const setupCodeCopyButtons = () => {
   });
 };
 
+// 设置图片点击事件
+const setupImageClickHandlers = () => {
+  nextTick(() => {
+    const contentImages = document.querySelectorAll('.markdown-body img');
+    const allImageUrls = Array.from(contentImages).map(img => img.src);
+    
+    contentImages.forEach((img, index) => {
+      // 添加鼠标样式
+      img.style.cursor = 'zoom-in';
+      
+      // 移除已有的事件监听器（如果有的话）
+      const clonedImg = img.cloneNode(true);
+      img.parentNode.replaceChild(clonedImg, img);
+      
+      // 添加点击事件
+      clonedImg.addEventListener('click', (event) => {
+        event.preventDefault();
+        previewImages.value = allImageUrls;
+        previewIndex.value = index;
+        showViewer.value = true;
+      });
+    });
+  });
+};
+
+// 关闭图片预览
+const closeViewer = () => {
+  showViewer.value = false;
+};
+
 // 格式化日期
 const formatDate = (dateString) => {
   if (!dateString) return ''
@@ -131,6 +167,7 @@ const fetchArticle = async () => {
       // 文章加载完成后，设置代码块复制按钮
       nextTick(() => {
         setupCodeCopyButtons();
+        setupImageClickHandlers();
       });
     } else {
       ElMessage.error(response?.msg || '获取文章失败')
@@ -146,11 +183,12 @@ const fetchArticle = async () => {
   }
 }
 
-// 监听文章内容变化，重新设置复制按钮
+// 监听文章内容变化，重新设置复制按钮和图片点击事件
 watch(() => article.value?.content, () => {
   if (article.value?.content) {
     nextTick(() => {
       setupCodeCopyButtons();
+      setupImageClickHandlers();
     });
   }
 });
@@ -176,6 +214,15 @@ onMounted(() => {
       </div>
       
       <div class="content markdown-body" v-html="md.render(article.content || '')"></div>
+      
+      <!-- 图片预览组件 -->
+      <el-image-viewer
+        v-if="showViewer"
+        :url-list="previewImages"
+        :initial-index="previewIndex"
+        :hide-on-click-modal="true"
+        @close="closeViewer"
+      />
     </div>
     <div v-else-if="loading" class="loading">
       加载中...
@@ -250,15 +297,15 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .tag {
-  background-color: #f0f0f0;
-  padding: 6px 12px;
+  background-color: #f0f7f4;
+  color: #11754b;
+  padding: 4px 10px;
   border-radius: 4px;
-  font-size: 14px;
-  color: #666;
+  font-size: 12px;
 }
 
 .content {
@@ -266,132 +313,49 @@ onMounted(() => {
   color: #333;
 }
 
-.markdown-body :deep(h1),
-.markdown-body :deep(h2),
-.markdown-body :deep(h3) {
-  margin-top: 30px;
-  margin-bottom: 15px;
-  font-weight: 600;
-  line-height: 1.25;
+/* 自定义Markdown样式 */
+:deep(.markdown-body) {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
-.markdown-body :deep(h1) {
-  font-size: 2em;
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 0.3em;
-}
-
-.markdown-body :deep(h2) {
-  font-size: 1.5em;
-  border-bottom: 1px solid #eaecef;
-  padding-bottom: 0.3em;
-}
-
-.markdown-body :deep(h3) {
-  font-size: 1.25em;
-}
-
-.markdown-body :deep(p) {
-  margin-bottom: 16px;
-}
-
-.markdown-body :deep(a) {
-  color: #0366d6;
-  text-decoration: none;
-}
-
-.markdown-body :deep(a:hover) {
-  text-decoration: underline;
-}
-
-.markdown-body :deep(code) {
-  background-color: rgba(27, 31, 35, 0.05);
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
-  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
-  font-size: 85%;
-}
-
-.markdown-body :deep(pre) {
-  background-color: #f6f8fa;
-  padding: 16px;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin-bottom: 16px;
-  position: relative;
-}
-
-.markdown-body :deep(pre code) {
-  background-color: transparent;
-  padding: 0;
-  display: block;
-  overflow-x: auto;
-  line-height: 1.5;
-  font-family: SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
-}
-
-.markdown-body :deep(.hljs) {
-  background-color: transparent;
-  padding: 0;
-  border-radius: 3px;
-}
-
-.markdown-body :deep(blockquote) {
-  padding: 0 1em;
-  color: #6a737d;
-  border-left: 0.25em solid #dfe2e5;
-  margin: 0 0 16px 0;
-}
-
-.markdown-body :deep(img) {
+:deep(.markdown-body img) {
   max-width: 100%;
-  box-sizing: content-box;
-  background-color: #fff;
-  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  margin: 10px 0;
+  transition: transform 0.3s ease;
 }
 
-.markdown-body :deep(ul), 
-.markdown-body :deep(ol) {
-  padding-left: 2em;
+:deep(.markdown-body img:hover) {
+  transform: scale(1.01);
+}
+
+:deep(.markdown-body pre) {
+  position: relative;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  padding: 16px;
   margin-bottom: 16px;
+  overflow: auto;
 }
 
-.loading, .error {
-  text-align: center;
-  padding: 60px 20px;
-  font-size: 18px;
-  color: #666;
-}
-
-.error {
-  color: #f56c6c;
-}
-
-@media (max-width: 768px) {
-  .article-container {
-    padding: 20px;
-    margin: 0 15px;
-  }
-  
-  .title {
-    font-size: 24px;
-  }
-}
-
-/* 复制按钮样式 */
 :deep(.copy-btn) {
   position: absolute;
   top: 8px;
   right: 8px;
   padding: 4px 8px;
-  background-color: #e9ecef;
+  background-color: #f0f7f4;
+  color: #11754b;
   border: none;
   border-radius: 4px;
   font-size: 12px;
-  color: #495057;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s ease, background-color 0.2s ease;
+  transition: opacity 0.3s;
+}
+
+:deep(.markdown-body pre:hover .copy-btn) {
+  opacity: 1;
 }
 
 :deep(.copy-btn.copied) {
@@ -399,7 +363,28 @@ onMounted(() => {
   color: white;
 }
 
-:deep(pre:hover .copy-btn) {
-  opacity: 1;
+.loading,
+.error {
+  text-align: center;
+  padding: 50px 0;
+  color: #666;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .article-container {
+    padding: 20px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .meta {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 }
 </style> 

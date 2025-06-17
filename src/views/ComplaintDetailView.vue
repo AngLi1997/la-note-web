@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, inject } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElImageViewer } from 'element-plus'
 import { getMoodEmoji } from '../utils/moodUtils'
 
 // 使用注入的API
@@ -12,6 +12,25 @@ const router = useRouter()
 const complaint = ref(null)
 const loading = ref(true)
 const complaintId = route.params.id
+
+// 图片预览相关
+const showViewer = ref(false)
+const previewImages = ref([])
+const previewIndex = ref(0)
+
+// 点击图片时预览
+const handleImageClick = (index) => {
+  if (complaint.value && complaint.value.images && complaint.value.images.length > 0) {
+    previewImages.value = [...complaint.value.images]
+    previewIndex.value = index
+    showViewer.value = true
+  }
+}
+
+// 关闭图片预览
+const closeViewer = () => {
+  showViewer.value = false
+}
 
 // 获取拾光详情
 const fetchComplaintDetail = async () => {
@@ -104,11 +123,21 @@ onMounted(() => {
               v-for="(image, index) in complaint.images" 
               :key="index" 
               class="image-wrapper"
+              @click="handleImageClick(index)"
             >
               <img :src="image" :alt="`拾光图片${index + 1}`">
             </div>
           </div>
         </div>
+        
+        <!-- 图片预览组件 -->
+        <el-image-viewer
+          v-if="showViewer"
+          :url-list="previewImages"
+          :initial-index="previewIndex"
+          :hide-on-click-modal="true"
+          @close="closeViewer"
+        />
       </div>
     </div>
   </div>
@@ -208,6 +237,7 @@ onMounted(() => {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: zoom-in;
 }
 
 .image-wrapper img {
@@ -236,7 +266,8 @@ onMounted(() => {
   }
   
   .complaint-images {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
   }
 }
 </style> 
