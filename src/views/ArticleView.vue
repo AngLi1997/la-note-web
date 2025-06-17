@@ -160,7 +160,7 @@ const fetchArticle = async () => {
     if (response && response.code === 200) {
       article.value = {
         ...response.data,
-        date: formatDate(response.data.createTime || response.data.updateTime),
+        date: formatDate(response.data.createTime),
         hasImages: hasImages(response.data.content)
       }
       

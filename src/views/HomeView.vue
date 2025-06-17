@@ -122,7 +122,7 @@ const fetchArticles = async () => {
             // 处理日期格式，确保有文章日期字段
             return {
               ...article,
-              date: formatDate(article.createTime || article.updateTime || new Date()),
+              date: article.createTime ? formatDate(article.createTime) : formatDate(new Date()),
               // 确保thumbnail字段存在且有效
               thumbnail: article.thumbnail || ''
             };
@@ -134,7 +134,7 @@ const fetchArticles = async () => {
           newArticles = response.data.records.map(article => {
             return {
               ...article,
-              date: formatDate(article.createTime || article.updateTime || new Date()),
+              date: article.createTime ? formatDate(article.createTime) : formatDate(new Date()),
               thumbnail: article.thumbnail || ''
             };
           });
@@ -145,7 +145,7 @@ const fetchArticles = async () => {
           newArticles = response.data.map(article => {
             return {
               ...article,
-              date: formatDate(article.createTime || article.updateTime || new Date()),
+              date: article.createTime ? formatDate(article.createTime) : formatDate(new Date()),
               thumbnail: article.thumbnail || ''
             };
           });
@@ -157,7 +157,7 @@ const fetchArticles = async () => {
         newArticles = response.map(article => {
           return {
             ...article,
-            date: formatDate(article.createTime || article.updateTime || new Date()),
+            date: article.createTime ? formatDate(article.createTime) : formatDate(new Date()),
             thumbnail: article.thumbnail || ''
           };
         });
@@ -169,7 +169,7 @@ const fetchArticles = async () => {
         newArticles = Array.isArray(possibleData) ? possibleData.map(article => {
           return {
             ...article,
-            date: formatDate(article.createTime || article.updateTime || new Date()),
+            date: article.createTime ? formatDate(article.createTime) : formatDate(new Date()),
             thumbnail: article.thumbnail || ''
           };
         }) : [];

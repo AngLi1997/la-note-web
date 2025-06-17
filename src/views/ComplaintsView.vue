@@ -85,7 +85,10 @@ const fetchComplaints = async () => {
     
     if (response && response.code === 200 && response.data) {
       if (response.data.list) {
-        newComplaints = response.data.list.map(processComplaintData)
+        newComplaints = response.data.list.map(complaint => ({
+          ...complaint,
+          date: complaint.createTime ? formatDate(complaint.createTime) : formatDate(new Date()),
+        }))
         totalCount.value = response.data.total || 0
       } else if (Array.isArray(response.data)) {
         newComplaints = response.data.map(processComplaintData)

@@ -35,14 +35,14 @@ const fetchArticlesByCategory = async () => {
       if (response.data.list) {
         articles.value = response.data.list.map(article => ({
           ...article,
-          date: formatDate(article.createTime || article.updateTime || new Date()),
+          date: article.createTime ? formatDate(article.createTime) : formatDate(new Date()),
           thumbnail: article.thumbnail || ''
         }))
         totalCount.value = response.data.total || 0
       } else if (Array.isArray(response.data)) {
         articles.value = response.data.map(article => ({
           ...article,
-          date: formatDate(article.createTime || article.updateTime || new Date()),
+          date: article.createTime ? formatDate(article.createTime) : formatDate(new Date()),
           thumbnail: article.thumbnail || ''
         }))
         totalCount.value = response.data.length

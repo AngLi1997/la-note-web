@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, reactive, inject, nextTick, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { logout, getUserInfo, getToken, setUserInfo, removeToken } from '../../utils/auth.js';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
@@ -8,6 +8,13 @@ import { Document, ChatLineRound, Timer, User, Setting, SwitchButton, View, Hide
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css'; // 导入代码高亮样式
+
+// 格式化日期函数
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString() + ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+};
 
 const api = inject('api');
 const router = useRouter();
@@ -313,11 +320,16 @@ const submitArticleForm = async () => {
       try {
         loading.value = true;
         
-        // 准备文章数据
+        // 准备文章数据，只提取需要的字段，避免传递createTime和updateTime
         const articleData = {
-          ...articleForm,
-          status: Number(articleForm.status), // 确保是数字类型
-          tags: articleForm.tags // 直接使用数组
+          id: articleForm.id,
+          title: articleForm.title,
+          summary: articleForm.summary,
+          content: articleForm.content,
+          category: articleForm.category,
+          tags: articleForm.tags,
+          thumbnail: articleForm.thumbnail,
+          status: Number(articleForm.status) // 确保是数字类型
         };
         
         let response;
@@ -756,9 +768,12 @@ const submitComplaintForm = async () => {
       try {
         loading.value = true;
         
-        // 准备拾光数据
+        // 准备拾光数据，只提取需要的字段，避免传递createTime和updateTime
         const complaintData = {
-          ...complaintForm,
+          id: complaintForm.id,
+          title: complaintForm.title,
+          content: complaintForm.content,
+          mood: complaintForm.mood,
           status: Number(complaintForm.status) // 确保是数字类型
         };
         
@@ -817,11 +832,14 @@ const handlePublishComplaint = async (row) => {
     try {
       loading.value = true;
       
-      // 更新拾光状态
-      const response = await api.complaint.updateComplaint(row.id, {
-        ...row,
+      // 更新拾光状态，只传递必要的字段
+      const complaintData = {
+        id: row.id,
         status: newStatus
-      });
+      };
+      
+      // 更新拾光状态
+      const response = await api.complaint.updateComplaint(row.id, complaintData);
       
       if (response && response.code === 200) {
         ElMessage.success(`${action}成功`);
@@ -1136,8 +1154,16 @@ const submitTimelineForm = async () => {
       try {
         loading.value = true;
         
-        // 准备事件数据
-        const eventData = { ...timelineForm };
+        // 准备事件数据，只提取需要的字段，避免传递createTime和updateTime
+        const eventData = {
+          id: timelineForm.id,
+          title: timelineForm.title,
+          content: timelineForm.content,
+          date: timelineForm.date,
+          category: timelineForm.category,
+          icon: timelineForm.icon,
+          displayOrder: timelineForm.displayOrder
+        };
         
         let response;
         
@@ -1305,7 +1331,7 @@ const saveUserInfo = async () => {
       extraContactsObj.wechat = formData.wechat;
     }
     
-    // 准备用户设置数据
+    // 准备用户设置数据，只提取需要的字段，避免传递createTime和updateTime
     const settingData = {
       userId: formData.id,
       bio: formData.bio || '',
@@ -1668,7 +1694,20 @@ const saveSiteSettings = async () => {
     loading.value = true
     console.log('正在保存网站设置:', siteSettings.value)
     
-    const response = await api.site.updateSiteSetting(siteSettings.value)
+    // 只提取需要的字段，避免传递createTime和updateTime
+    const settingsData = {
+      id: siteSettings.value.id,
+      title: siteSettings.value.title,
+      subtitle: siteSettings.value.subtitle,
+      description: siteSettings.value.description,
+      slogan: siteSettings.value.slogan,
+      keywords: siteSettings.value.keywords,
+      footer: siteSettings.value.footer,
+      icp: siteSettings.value.icp,
+      socialLinks: siteSettings.value.socialLinks
+    }
+    
+    const response = await api.site.updateSiteSetting(settingsData)
     console.log('保存网站设置响应:', response)
     
     if (response && response.code === 200) {
@@ -1676,7 +1715,7 @@ const saveSiteSettings = async () => {
       // 更新原始数据
       originalSiteSettings.value = JSON.parse(JSON.stringify(siteSettings.value))
     } else {
-      ElMessage.error('网站设置保存失败')
+      ElMessage.error(response?.msg || '保存网站设置失败')
     }
   } catch (error) {
     console.error('保存网站设置出错:', error)
@@ -1826,9 +1865,13 @@ watch(() => articleDialogVisible.value, (isVisible) => {
                   </el-tooltip>
                 </template>
               </el-table-column>
-              <el-table-column label="发布日期" width="180">
+              <el-table-column
+                prop="createTime"
+                label="创建时间"
+                width="180"
+              >
                 <template #default="scope">
-                  {{ new Date(scope.row.createTime).toLocaleString() }}
+                  {{ formatDate(scope.row.createTime) }}
                 </template>
               </el-table-column>
               <el-table-column label="状态" width="100">
@@ -2048,9 +2091,13 @@ watch(() => articleDialogVisible.value, (isVisible) => {
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column label="发布日期" width="180">
+              <el-table-column
+                prop="createTime"
+                label="创建时间"
+                width="180"
+              >
                 <template #default="scope">
-                  {{ new Date(scope.row.createTime).toLocaleString() }}
+                  {{ formatDate(scope.row.createTime) }}
                 </template>
               </el-table-column>
               <el-table-column label="状态" width="100">
