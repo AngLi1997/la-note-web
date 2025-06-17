@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { logout, getUserInfo, getToken, setUserInfo, removeToken } from '../../utils/auth.js';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import { Document, ChatLineRound, Timer, User, Setting, SwitchButton, View, Hide, FullScreen, Rank } from '@element-plus/icons-vue';
+import { Document, ChatLineRound, Timer, User, Setting, SwitchButton, View, Hide, FullScreen, Rank, Picture } from '@element-plus/icons-vue';
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css'; // 导入代码高亮样式
@@ -421,7 +421,8 @@ const handleDeleteArticle = (row) => {
 // 处理文章图片粘贴
 const handlePasteImage = async (event) => {
   // 确保焦点在缩略图输入框时才处理粘贴事件
-  if (document.activeElement !== thumbnailRef.value.input) return;
+  if (document.activeElement !== thumbnailRef.value.input && 
+      !document.activeElement.classList.contains('el-textarea__inner')) return;
   
   const items = event.clipboardData.items;
   let file = null;
@@ -446,22 +447,40 @@ const handlePasteImage = async (event) => {
         // 根据后端返回的数据结构获取URL
         let imageUrl = '';
         if (typeof response.data === 'string') {
-          // 如果直接返回URL字符串
           imageUrl = response.data;
         } else if (response.data.url) {
-          // 如果返回对象中包含url字段
           imageUrl = response.data.url;
         } else if (response.data.path) {
-          // 如果返回对象中包含path字段
           imageUrl = response.data.path;
         } else if (response.data.fileUrl) {
-          // 如果返回对象中包含fileUrl字段
           imageUrl = response.data.fileUrl;
         }
         
         if (imageUrl) {
-          articleForm.thumbnail = imageUrl;
-          ElMessage.success('图片上传成功');
+          // 判断粘贴目标是缩略图还是文章内容
+          if (document.activeElement === thumbnailRef.value.input) {
+            articleForm.thumbnail = imageUrl;
+            ElMessage.success('缩略图上传成功');
+          } else if (document.activeElement.classList.contains('el-textarea__inner')) {
+            // 获取当前光标位置
+            const textarea = document.activeElement;
+            const startPos = textarea.selectionStart;
+            const endPos = textarea.selectionEnd;
+            
+            // 在光标位置插入Markdown图片语法
+            const markdownImage = `![图片](${imageUrl})`;
+            const content = articleForm.content;
+            articleForm.content = content.substring(0, startPos) + markdownImage + content.substring(endPos);
+            
+            // 设置新的光标位置
+            nextTick(() => {
+              const newCursorPos = startPos + markdownImage.length;
+              textarea.setSelectionRange(newCursorPos, newCursorPos);
+              textarea.focus();
+            });
+            
+            ElMessage.success('图片上传成功并插入文章内容');
+          }
         } else {
           ElMessage.error('无法获取上传的图片URL');
           console.error('上传响应中未找到图片URL:', response.data);
@@ -1904,8 +1923,12 @@ watch(() => articleDialogVisible.value, (isVisible) => {
                         v-model="articleForm.content" 
                         type="textarea" 
                         :rows="15" 
-                        placeholder="请输入文章内容，支持 Markdown 格式" 
+                        placeholder="请输入文章内容，支持 Markdown 格式，可直接粘贴图片自动上传" 
                       />
+                      <div class="editor-tips">
+                        <el-icon><Picture /></el-icon>
+                        <span>支持直接粘贴图片，自动上传并插入</span>
+                      </div>
                     </div>
                     
                     <div v-else class="preview-area">
@@ -2829,4 +2852,15 @@ watch(() => articleDialogVisible.value, (isVisible) => {
 }
 
 /* 添加键盘事件监听器 */
+
+.editor-tips {
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #888;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #f9f9f9;
+  border-top: 1px dashed #dcdfe6;
+}
 </style> 
