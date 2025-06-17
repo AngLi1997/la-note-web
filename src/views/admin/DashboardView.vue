@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { logout, getUserInfo, getToken, setUserInfo, removeToken } from '../../utils/auth.js';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import { Document, ChatLineRound, Timer, User, Setting, SwitchButton, View, Hide } from '@element-plus/icons-vue';
+import { Document, ChatLineRound, Timer, User, Setting, SwitchButton, View, Hide, FullScreen, Rank } from '@element-plus/icons-vue';
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/github.css'; // 导入代码高亮样式
@@ -42,6 +42,8 @@ const md = new MarkdownIt({
 const articlePreview = ref('');
 // 是否显示预览
 const showPreview = ref(false);
+// 是否最大化编辑器
+const isFullscreen = ref(false);
 
 // 文章对话框相关
 const articleDialogVisible = ref(false);
@@ -1698,6 +1700,38 @@ watch(() => articleForm.content, (newContent) => {
     articlePreview.value = '';
   }
 }, { immediate: true });
+
+// 切换编辑器全屏模式
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value;
+  
+  // 添加/移除键盘事件监听器
+  if (isFullscreen.value) {
+    document.addEventListener('keydown', handleKeyDown);
+  } else {
+    document.removeEventListener('keydown', handleKeyDown);
+  }
+};
+
+// 处理键盘事件
+const handleKeyDown = (e) => {
+  // Esc键退出全屏
+  if (e.key === 'Escape' && isFullscreen.value) {
+    isFullscreen.value = false;
+    document.removeEventListener('keydown', handleKeyDown);
+  }
+};
+
+// 监听文章对话框关闭，确保退出全屏模式
+watch(() => articleDialogVisible.value, (isVisible) => {
+  if (!isVisible && isFullscreen.value) {
+    isFullscreen.value = false;
+    document.removeEventListener('keydown', handleKeyDown);
+  }
+});
+
+// 获取文章列表
+// ... existing code ...
 </script>
 
 <template>
@@ -1845,7 +1879,7 @@ watch(() => articleForm.content, (newContent) => {
                 </el-form-item>
                 
                 <el-form-item label="内容" prop="content">
-                  <div class="markdown-editor-container">
+                  <div class="markdown-editor-container" :class="{'is-fullscreen': isFullscreen}">
                     <div class="editor-toolbar">
                       <el-button 
                         type="primary" 
@@ -1854,6 +1888,14 @@ watch(() => articleForm.content, (newContent) => {
                         :icon="showPreview ? Hide : View"
                       >
                         {{ showPreview ? '返回编辑' : '预览' }}
+                      </el-button>
+                      <el-button 
+                        type="primary" 
+                        size="small" 
+                        @click="toggleFullscreen"
+                        :icon="isFullscreen ? Rank : FullScreen"
+                      >
+                        {{ isFullscreen ? '退出全屏' : '全屏编辑' }}
                       </el-button>
                     </div>
                     
@@ -2528,6 +2570,28 @@ watch(() => articleForm.content, (newContent) => {
   flex-direction: column;
   height: 500px;
   width: 100%;
+  position: relative;
+  z-index: 1;
+  transition: all 0.3s ease;
+}
+
+/* 全屏模式样式 */
+.markdown-editor-container.is-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100vh;
+  width: 100vw;
+  z-index: 9999;
+  background-color: #fff;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.is-fullscreen .editor-toolbar {
+  margin-bottom: 15px;
 }
 
 .editor-toolbar {
@@ -2535,6 +2599,7 @@ watch(() => articleForm.content, (newContent) => {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 8px;
+  gap: 10px;
 }
 
 .editor-area {
@@ -2747,4 +2812,21 @@ watch(() => articleForm.content, (newContent) => {
   align-items: center;
   gap: 5px;
 }
+
+.is-fullscreen .editor-area,
+.is-fullscreen .preview-area {
+  flex: 1;
+  height: calc(100vh - 100px);
+}
+
+.is-fullscreen .editor-area :deep(.el-textarea),
+.is-fullscreen .editor-area :deep(.el-textarea__inner) {
+  height: 100%;
+}
+
+.is-fullscreen .markdown-preview {
+  height: 100%;
+}
+
+/* 添加键盘事件监听器 */
 </style> 
