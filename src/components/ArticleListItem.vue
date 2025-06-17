@@ -1,6 +1,5 @@
 <script setup>
 import { defineProps, defineEmits, ref, computed } from 'vue'
-import { ElImageViewer } from 'element-plus'
 
 const props = defineProps({
   article: {
@@ -64,30 +63,12 @@ const getArticleTags = (tags) => {
   return [];
 }
 
-// 图片预览相关
-const showViewer = ref(false)
-const previewImages = ref([])
-
-// 点击图片时预览
-const handleImageClick = (event) => {
-  event.stopPropagation() // 阻止冒泡，避免触发文章点击事件
-  if (hasCoverImage.value) {
-    previewImages.value = [coverImage.value]
-    showViewer.value = true
-  }
-}
-
-// 关闭图片预览
-const closeViewer = () => {
-  showViewer.value = false
-}
-
 defineEmits(['click'])
 </script>
 
 <template>
   <div class="article-list-item" @click="$emit('click')">
-    <div v-if="hasCoverImage" class="article-image" @click.stop="handleImageClick">
+    <div v-if="hasCoverImage" class="article-image">
       <img :src="coverImage" :alt="article.title"/>
     </div>
     <div class="article-content">
@@ -102,15 +83,6 @@ defineEmits(['click'])
         <span class="tag" v-for="(tag, index) in getArticleTags(article.tags)" :key="index">{{ tag }}</span>
       </div>
     </div>
-    
-    <!-- 图片预览组件 -->
-    <el-image-viewer
-      v-if="showViewer"
-      :url-list="previewImages"
-      :initial-index="0"
-      :hide-on-click-modal="true"
-      @close="closeViewer"
-    />
   </div>
 </template>
 
@@ -151,7 +123,6 @@ defineEmits(['click'])
   border-radius: 6px;
   background-color: #f5f5f5;
   position: relative;
-  cursor: zoom-in;
   margin-left: 6px;
 }
 

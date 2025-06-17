@@ -1,7 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { getMoodEmoji } from '../utils/moodUtils'
-import { ElImageViewer } from 'element-plus'
 
 const props = defineProps({
   complaint: {
@@ -39,29 +38,6 @@ const moodEmoji = computed(() => {
 const hasImage = computed(() => {
   return thumbnailImage.value !== null
 })
-
-// 图片预览相关
-const showViewer = ref(false)
-const previewImages = ref([])
-
-// 点击图片时预览
-const handleImageClick = (event) => {
-  event.stopPropagation() // 阻止冒泡，避免触发拾光点击事件
-  if (hasImage.value) {
-    // 如果拾光有多张图片，则全部加入预览
-    if (props.complaint.images && props.complaint.images.length > 0) {
-      previewImages.value = [...props.complaint.images]
-    } else {
-      previewImages.value = [thumbnailImage.value]
-    }
-    showViewer.value = true
-  }
-}
-
-// 关闭图片预览
-const closeViewer = () => {
-  showViewer.value = false
-}
 </script>
 
 <template>
@@ -81,18 +57,9 @@ const closeViewer = () => {
       </div>
     </div>
     
-    <div v-if="hasImage" class="complaint-image" @click.stop="handleImageClick">
+    <div v-if="hasImage" class="complaint-image">
       <img :src="thumbnailImage" alt="拾光配图">
     </div>
-    
-    <!-- 图片预览组件 -->
-    <el-image-viewer
-      v-if="showViewer"
-      :url-list="previewImages"
-      :initial-index="0"
-      :hide-on-click-modal="true"
-      @close="closeViewer"
-    />
   </div>
 </template>
 
@@ -191,7 +158,6 @@ const closeViewer = () => {
   overflow: hidden;
   margin-left: 15px;
   flex-shrink: 0;
-  cursor: zoom-in;
 }
 
 .complaint-image img {

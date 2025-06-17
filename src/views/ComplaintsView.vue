@@ -170,67 +170,66 @@ onMounted(() => {
 
 <template>
   <div class="complaints-view">
-    <h1 class="page-title fade-in">拾光</h1>
-    <p class="page-description fade-in" style="animation-delay: 0.1s">拾起光阴里的点滴，记录当下。</p>
-    
-    <!-- 筛选器 -->
-    <div class="filters fade-in" style="animation-delay: 0.2s">
-      <div class="filter-section">
-        <h3 class="filter-title">心情标签</h3>
-        <div class="filter-tags">
-          <div 
-            v-for="mood in moods" 
-            :key="mood" 
-            class="filter-tag mood-tag"
-            :class="{ active: currentMood === mood }"
-            @click="setMood(mood)"
-          >
-            {{ getMoodEmoji(mood).emoji }} {{ mood }}
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- 拾光列表 -->
-    <div class="complaints-container">
-      <div v-if="complaints.length === 0 && !switchLoading && !initialLoading" class="no-complaints fade-in">
-        没有找到符合条件的拾光
-      </div>
-      <div v-else-if="initialLoading" class="loading-state fade-in">
-        <div class="loading-spinner"></div>
-        <p>加载中...</p>
-      </div>
-      <div v-else class="complaint-items">
+    <div class="container">
+      <header class="page-header">
+        <h1>拾光</h1>
+        <p class="subtitle">拾起光阴里的点滴，记录当下。</p>
+      </header>
+      
+      <!-- 筛选器 -->
+      <div class="filter-container">
         <div 
-          v-for="(complaint, index) in complaints.length ? complaints : oldComplaints" 
-          :key="complaint.id" 
-          class="complaint-item-wrapper fade-in"
-          :style="{ 'animation-delay': `${0.3 + index * 0.1}s` }"
+          v-for="mood in moods" 
+          :key="mood" 
+          :class="['filter-item', currentMood === mood ? 'active' : '']"
+          @click="setMood(mood)"
         >
-          <ComplaintListItem 
-            :complaint="complaint"
-            @click="viewComplaint(complaint.id)"
-          />
+          {{ getMoodEmoji(mood).emoji }} {{ mood }}
         </div>
       </div>
       
-      <!-- 分页器 -->
-      <div v-if="totalCount > 0" class="pagination fade-in" style="animation-delay: 0.6s">
-        <button 
-          :disabled="currentPage === 1" 
-          @click="handlePageChange(currentPage - 1)"
-          class="page-btn"
-        >
-          上一页
-        </button>
-        <span class="page-info">{{ currentPage }} / {{ Math.ceil(totalCount / pageSize) }}</span>
-        <button 
-          :disabled="currentPage >= Math.ceil(totalCount / pageSize)" 
-          @click="handlePageChange(currentPage + 1)"
-          class="page-btn"
-        >
-          下一页
-        </button>
+      <!-- 拾光列表 -->
+      <div class="complaints-container">
+        <div v-if="complaints.length === 0 && !switchLoading && !initialLoading" class="empty-state">
+          <div class="empty-icon">📝</div>
+          <h3>暂无拾光数据</h3>
+          <p>没有找到符合条件的拾光</p>
+        </div>
+        <div v-else-if="initialLoading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <p>加载中...</p>
+        </div>
+        <div v-else class="complaint-items">
+          <div 
+            v-for="(complaint, index) in complaints.length ? complaints : oldComplaints" 
+            :key="complaint.id" 
+            class="complaint-item-wrapper"
+          >
+            <ComplaintListItem 
+              :complaint="complaint"
+              @click="viewComplaint(complaint.id)"
+            />
+          </div>
+        </div>
+        
+        <!-- 分页器 -->
+        <div v-if="totalCount > 0" class="pagination">
+          <button 
+            :disabled="currentPage === 1" 
+            @click="handlePageChange(currentPage - 1)"
+            class="page-btn"
+          >
+            上一页
+          </button>
+          <span class="page-info">{{ currentPage }} / {{ Math.ceil(totalCount / pageSize) }}</span>
+          <button 
+            :disabled="currentPage >= Math.ceil(totalCount / pageSize)" 
+            @click="handlePageChange(currentPage + 1)"
+            class="page-btn"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -238,29 +237,35 @@ onMounted(() => {
 
 <style scoped>
 .complaints-view {
-  padding: 20px;
-  max-width: 1000px;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  padding: 40px 0;
+}
+
+.container {
+  max-width: 800px;
   margin: 0 auto;
+  padding: 0 20px;
 }
 
-.page-title {
-  font-size: 32px;
-  margin-bottom: 10px;
+.page-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.page-header h1 {
+  font-size: 2.5rem;
   color: #333;
+  margin: 0;
 }
 
-.page-description {
-  font-size: 16px;
+.subtitle {
   color: #666;
-  margin-bottom: 30px;
+  font-size: 1.1rem;
+  margin-top: 10px;
 }
 
 /* 淡入动画 */
-.fade-in {
-  animation: fadeIn 0.8s ease-out forwards;
-  opacity: 0;
-}
-
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -272,73 +277,65 @@ onMounted(() => {
   }
 }
 
-.filters {
-  background-color: white;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.filter-section {
-  margin-bottom: 15px;
-}
-
-.filter-section:last-child {
-  margin-bottom: 0;
-}
-
-.filter-title {
-  font-size: 16px;
-  margin: 0 0 10px 0;
-  color: #333;
-}
-
-.filter-tags {
+.filter-container {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  margin-bottom: 30px;
+  justify-content: center;
 }
 
-.filter-tag {
+.filter-item {
   padding: 8px 16px;
   background-color: white;
   border-radius: 20px;
-  font-size: 14px;
-  color: #333;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-.filter-tag:hover {
-  background-color: #f0f7f4;
-}
-
-.filter-tag.active {
-  background-color: #11754b;
-  color: white;
-}
-
-.mood-tag {
+  font-size: 14px;
   display: flex;
   align-items: center;
   gap: 5px;
+}
+
+.filter-item:hover {
+  background-color: #f0f7f4;
+}
+
+.filter-item.active {
+  background-color: #11754b;
+  color: white;
 }
 
 .complaints-container {
   margin-top: 20px;
 }
 
-.loading-state,
-.no-complaints {
+.empty-state,
+.loading-state {
   background-color: white;
   border-radius: 8px;
-  padding: 30px;
+  padding: 40px 20px;
   text-align: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin: 20px 0;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: #11754b;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  margin: 0 0 10px 0;
+  color: #333;
+}
+
+.empty-state p {
   color: #666;
-  font-size: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  margin: 0;
 }
 
 .loading-spinner {
@@ -392,15 +389,19 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .complaints-view {
-    padding: 15px;
+    padding: 20px 0;
   }
   
-  .page-title {
-    font-size: 24px;
+  .container {
+    padding: 0 15px;
   }
   
-  .filters {
-    padding: 15px;
+  .page-header h1 {
+    font-size: 2rem;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
   }
 }
 
@@ -413,6 +414,6 @@ onMounted(() => {
 }
 
 .complaint-item-wrapper {
-  /* 应用淡入动画效果 */
+  animation: fadeIn 0.6s ease-out forwards;
 }
 </style> 
