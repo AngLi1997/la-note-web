@@ -94,7 +94,6 @@ const complaintCurrentPage = ref(1);
 const complaintPageSize = ref(10);
 const complaintFormRules = {
   title: [{ required: true, message: '请输入拾光标题', trigger: 'blur' }],
-  content: [{ required: true, message: '请输入拾光内容', trigger: 'blur' }],
   mood: [{ required: true, message: '请选择心情标签', trigger: 'change' }]
 };
 const fileList = ref([]);
@@ -1858,10 +1857,10 @@ watch(() => articleDialogVisible.value, (isVisible) => {
                   <el-tooltip
                     class="box-item"
                     effect="dark"
-                    :content="scope.row.content || '暂无内容'"
+                    :content="scope.row.content || ''"
                     placement="top-start"
                   >
-                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '暂无内容' }}</div>
+                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '' }}</div>
                   </el-tooltip>
                 </template>
               </el-table-column>
@@ -2077,10 +2076,10 @@ watch(() => articleDialogVisible.value, (isVisible) => {
                   <el-tooltip
                     class="box-item"
                     effect="dark"
-                    :content="scope.row.content || '暂无内容'"
+                    :content="scope.row.content || ''"
                     placement="top-start"
                   >
-                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '暂无内容' }}</div>
+                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '' }}</div>
                   </el-tooltip>
                 </template>
               </el-table-column>
@@ -2140,7 +2139,6 @@ watch(() => articleDialogVisible.value, (isVisible) => {
             </div>
             
             <div v-if="complaintTableData.length === 0 && !loading" class="empty-data">
-              <p>暂无拾光数据</p>
               <el-button type="primary" @click="handleAddComplaint">新增拾光</el-button>
             </div>
           </div>
@@ -2164,10 +2162,10 @@ watch(() => articleDialogVisible.value, (isVisible) => {
                   <el-tooltip
                     class="box-item"
                     effect="dark"
-                    :content="scope.row.content || '暂无内容'"
+                    :content="scope.row.content || ''"
                     placement="top-start"
                   >
-                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '暂无内容' }}</div>
+                    <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '' }}</div>
                   </el-tooltip>
                 </template>
               </el-table-column>
@@ -2473,7 +2471,7 @@ watch(() => articleDialogVisible.value, (isVisible) => {
           <el-input v-model="complaintForm.title" placeholder="请输入拾光标题" />
         </el-form-item>
         
-        <el-form-item label="内容" prop="content">
+        <el-form-item label="内容">
           <el-input 
             v-model="complaintForm.content" 
             type="textarea" 

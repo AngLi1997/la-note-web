@@ -106,8 +106,6 @@ onMounted(() => {
       <!-- 空数据提示 -->
       <div v-if="!loading && filteredEvents.length === 0" class="empty-state">
         <div class="empty-icon">📅</div>
-        <h3>暂无时间轴数据</h3>
-        <p>当前分类下没有可显示的事件</p>
       </div>
       
       <div v-else class="timeline-container">

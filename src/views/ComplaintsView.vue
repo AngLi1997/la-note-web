@@ -195,8 +195,6 @@ onMounted(() => {
       <div class="complaints-container">
         <div v-if="complaints.length === 0 && !switchLoading && !initialLoading" class="empty-state">
           <div class="empty-icon">📝</div>
-          <h3>暂无拾光数据</h3>
-          <p>没有找到符合条件的拾光</p>
         </div>
         <div v-else-if="initialLoading" class="loading-state">
           <div class="loading-spinner"></div>
