@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, inject } from 'vue'
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 // 注入API
 const api = inject('api')
@@ -13,11 +13,6 @@ const loading = ref(false)
 
 // 获取时间轴事件数据
 const fetchTimelineEvents = async () => {
-  const loadingInstance = ElLoading.service({
-    target: '.timeline-view',
-    text: '加载中...'
-  })
-  
   loading.value = true
   
   try {
@@ -31,7 +26,6 @@ const fetchTimelineEvents = async () => {
     ElMessage.error('获取时间轴数据失败')
   } finally {
     loading.value = false
-    loadingInstance.close()
   }
 }
 
@@ -108,7 +102,7 @@ onMounted(() => {
         <div class="empty-icon">📅</div>
       </div>
       
-      <div v-else class="timeline-container">
+      <div v-else-if="!loading" class="timeline-container">
         <div class="timeline-line"></div>
         
         <div 

@@ -196,10 +196,6 @@ onMounted(() => {
         <div v-if="complaints.length === 0 && !switchLoading && !initialLoading" class="empty-state">
           <div class="empty-icon">📝</div>
         </div>
-        <div v-else-if="initialLoading" class="loading-state">
-          <div class="loading-spinner"></div>
-          <p>加载中...</p>
-        </div>
         <div v-else class="complaint-items">
           <div 
             v-for="(complaint, index) in complaints.length ? complaints : oldComplaints" 
