@@ -485,16 +485,19 @@ onMounted(() => {
 }
 
 .nav-item {
-  padding: 10px 20px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
   cursor: pointer;
   font-weight: 500;
   transition: all 0.3s ease;
   white-space: nowrap;
+  background-color: white;
+  font-size: 14px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .nav-item:hover {
-  background-color: rgba(17, 117, 75, 0.1);
+  background-color: #f0f7f4;
 }
 
 .nav-item.active {

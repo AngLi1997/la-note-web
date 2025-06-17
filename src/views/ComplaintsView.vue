@@ -301,17 +301,18 @@ onMounted(() => {
 }
 
 .filter-tag {
-  padding: 6px 12px;
-  background-color: #f5f5f5;
+  padding: 8px 16px;
+  background-color: white;
   border-radius: 20px;
   font-size: 14px;
   color: #333;
   cursor: pointer;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .filter-tag:hover {
-  background-color: #e8f4ee;
+  background-color: #f0f7f4;
 }
 
 .filter-tag.active {

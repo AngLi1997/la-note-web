@@ -130,7 +130,12 @@ defineEmits(['click'])
 }
 
 .article-category {
+  display: inline-block;
+  background-color: #f0f7f4;
   color: #11754b;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
   font-weight: 500;
 }
 

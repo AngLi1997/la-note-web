@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, inject } from 'vue'
+import { ref, onMounted, inject, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MarkdownIt from 'markdown-it'
 import { ElMessage, ElLoading } from 'element-plus'
@@ -19,7 +19,7 @@ const md = new MarkdownIt({
   highlight: function (str, lang) {
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return '<pre class="hljs"><code>' +
+        return '<pre class="hljs"><code class="language-' + lang + '">' +
                hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
                '</code></pre>';
       } catch (__) {}
@@ -28,6 +28,54 @@ const md = new MarkdownIt({
     return '<pre class="hljs"><code>' + md.utils.escapeHtml(str) + '</code></pre>';
   }
 })
+
+// 添加复制代码功能
+const setupCodeCopyButtons = () => {
+  nextTick(() => {
+    const preElements = document.querySelectorAll('.markdown-body pre');
+    
+    preElements.forEach((pre, index) => {
+      // 检查是否已经添加了复制按钮
+      if (pre.querySelector('.copy-btn')) return;
+      
+      // 创建复制按钮
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = '复制';
+      copyBtn.setAttribute('data-index', index);
+      
+      // 添加按钮到代码块
+      pre.style.position = 'relative';
+      pre.appendChild(copyBtn);
+      
+      // 添加点击事件
+      copyBtn.addEventListener('click', () => {
+        const code = pre.querySelector('code');
+        if (code) {
+          const textToCopy = code.textContent || '';
+          
+          // 使用 Clipboard API 复制文本
+          navigator.clipboard.writeText(textToCopy)
+            .then(() => {
+              // 复制成功，更改按钮文本
+              copyBtn.textContent = '已复制';
+              copyBtn.classList.add('copied');
+              
+              // 2秒后恢复按钮文本
+              setTimeout(() => {
+                copyBtn.textContent = '复制';
+                copyBtn.classList.remove('copied');
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('复制失败:', err);
+              ElMessage.error('复制失败，请手动复制');
+            });
+        }
+      });
+    });
+  });
+};
 
 // 格式化日期
 const formatDate = (dateString) => {
@@ -79,6 +127,11 @@ const fetchArticle = async () => {
         date: formatDate(response.data.createTime || response.data.updateTime),
         hasImages: hasImages(response.data.content)
       }
+      
+      // 文章加载完成后，设置代码块复制按钮
+      nextTick(() => {
+        setupCodeCopyButtons();
+      });
     } else {
       ElMessage.error(response?.msg || '获取文章失败')
       router.push('/')
@@ -92,6 +145,15 @@ const fetchArticle = async () => {
     loadingInstance.close()
   }
 }
+
+// 监听文章内容变化，重新设置复制按钮
+watch(() => article.value?.content, () => {
+  if (article.value?.content) {
+    nextTick(() => {
+      setupCodeCopyButtons();
+    });
+  }
+});
 
 onMounted(() => {
   fetchArticle()
@@ -314,5 +376,30 @@ onMounted(() => {
   .title {
     font-size: 24px;
   }
+}
+
+/* 复制按钮样式 */
+:deep(.copy-btn) {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  background-color: #e9ecef;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+:deep(.copy-btn.copied) {
+  background-color: #11754b;
+  color: white;
+}
+
+:deep(pre:hover .copy-btn) {
+  opacity: 1;
 }
 </style> 
