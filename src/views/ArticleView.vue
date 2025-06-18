@@ -360,6 +360,29 @@ onMounted(() => {
   background-color: #f0f7f4;
 }
 
+/* 优化列表样式 */
+:deep(.markdown-body ul),
+:deep(.markdown-body ol) {
+  padding-left: 20px;
+  margin: 16px 0;
+}
+
+:deep(.markdown-body li) {
+  margin-bottom: 8px;
+}
+
+:deep(.markdown-body li > ul),
+:deep(.markdown-body li > ol) {
+  margin: 8px 0;
+}
+
+/* 优化代码块内容的左右留白 */
+:deep(.markdown-body pre code) {
+  padding: 0;
+  margin: 0;
+  display: block;
+}
+
 :deep(.markdown-body pre) {
   position: relative;
   background-color: #f6f8fa;
