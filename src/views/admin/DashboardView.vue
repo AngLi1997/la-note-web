@@ -253,12 +253,41 @@ const handleAddArticle = () => {
     }
   });
   
+  // 检查缓存中的isEdit标记
+  const cache = localStorage.getItem('articleFormCache');
+  let cacheIsEdit = false;
+  
+  if (cache) {
+    try {
+      const data = JSON.parse(cache);
+      cacheIsEdit = data.isEdit || false;
+    } catch (error) {
+      console.error('解析文章表单缓存失败:', error);
+    }
+  }
+  
   isEdit.value = false;
+  
+  // 只有当缓存不是来自编辑模式时，才尝试加载缓存
+  let hasCachedForm = false;
+  if (!cacheIsEdit) {
+    hasCachedForm = loadArticleFormCache();
+  } else {
+    // 如果缓存来自编辑模式，清除它
+    console.log('缓存来自编辑模式，清除缓存');
+    clearArticleFormCache();
+  }
+  
   articleDialogVisible.value = true;
   
   // 确保DOM已更新后设置粘贴事件监听
   nextTick(() => {
     setupPasteListener();
+    
+    // 如果有缓存，提示用户
+    if (hasCachedForm) {
+      ElMessage.info('已加载上次未保存的表单数据');
+    }
   });
 };
 
@@ -340,6 +369,10 @@ const submitArticleForm = async () => {
           response = await api.article.updateArticle(articleForm.id, articleData);
           if (response && response.code === 200) {
             ElMessage.success('文章更新成功');
+            // 清除表单缓存
+            clearArticleFormCache();
+            // 设置提交成功标志
+            submitSuccess.value = true;
           } else {
             ElMessage.error(response?.msg || '更新文章失败');
           }
@@ -348,6 +381,10 @@ const submitArticleForm = async () => {
           response = await api.article.createArticle(articleData);
           if (response && response.code === 200) {
             ElMessage.success(articleForm.status === 1 ? '文章已发布成功' : '文章已保存为草稿');
+            // 清除表单缓存
+            clearArticleFormCache();
+            // 设置提交成功标志
+            submitSuccess.value = true;
           } else {
             ElMessage.error(response?.msg || '创建文章失败');
           }
@@ -527,10 +564,25 @@ const removePasteListener = () => {
   document.removeEventListener('paste', handlePasteImage);
 };
 
+// 提交成功标志，用于控制是否保存缓存
+const submitSuccess = ref(false);
+const complaintSubmitSuccess = ref(false);
+const timelineSubmitSuccess = ref(false);
+
 // 处理文章对话框关闭
 const handleDialogClose = () => {
-  removePasteListener();
-  articleDialogVisible.value = false;
+  // 如果提交成功，则不保存缓存
+  if (submitSuccess.value) {
+    console.log('提交成功，不保存缓存');
+    submitSuccess.value = false; // 重置标志
+    return;
+  }
+  
+  // 如果表单有内容，则保存表单缓存
+  if (articleForm.title || articleForm.content || articleForm.summary) {
+    console.log('表单有内容，保存缓存');
+    saveArticleFormCache();
+  }
 };
 
 // 创建新分类
@@ -549,7 +601,6 @@ const createTag = (query) => {
     ElMessage.success(`已创建新标签: ${query}`);
   }
 };
-
 
 // 处理标签创建事件
 const handleTagCreate = (query) => {
@@ -715,12 +766,42 @@ const handleAddComplaint = () => {
   
   fileList.value = [];
   imageUrl.value = ''; // 重置图片URL
+  
+  // 检查缓存中的isEdit标记
+  const cache = localStorage.getItem('complaintFormCache');
+  let cacheIsEdit = false;
+  
+  if (cache) {
+    try {
+      const data = JSON.parse(cache);
+      cacheIsEdit = data.isEdit || false;
+    } catch (error) {
+      console.error('解析拾光表单缓存失败:', error);
+    }
+  }
+  
   isEditComplaint.value = false;
+  
+  // 只有当缓存不是来自编辑模式时，才尝试加载缓存
+  let hasCachedForm = false;
+  if (!cacheIsEdit) {
+    hasCachedForm = loadComplaintFormCache();
+  } else {
+    // 如果缓存来自编辑模式，清除它
+    console.log('拾光缓存来自编辑模式，清除缓存');
+    clearComplaintFormCache();
+  }
+  
   complaintDialogVisible.value = true;
   
   // 确保DOM已更新后设置粘贴事件监听
   nextTick(() => {
     setupComplaintPasteListener();
+    
+    // 如果有缓存，提示用户
+    if (hasCachedForm) {
+      ElMessage.info('已加载上次未保存的拾光表单数据');
+    }
   });
 };
 
@@ -811,6 +892,10 @@ const submitComplaintForm = async () => {
           response = await api.complaint.updateComplaint(complaintForm.id, complaintData);
           if (response && response.code === 200) {
             ElMessage.success('拾光更新成功');
+            // 清除表单缓存
+            clearComplaintFormCache();
+            // 设置提交成功标志
+            complaintSubmitSuccess.value = true;
           } else {
             ElMessage.error(response?.msg || '更新拾光失败');
           }
@@ -819,6 +904,10 @@ const submitComplaintForm = async () => {
           response = await api.complaint.createComplaint(complaintData);
           if (response && response.code === 200) {
             ElMessage.success(complaintForm.status === 1 ? '拾光已发布成功' : '拾光已保存为草稿');
+            // 清除表单缓存
+            clearComplaintFormCache();
+            // 设置提交成功标志
+            complaintSubmitSuccess.value = true;
           } else {
             ElMessage.error(response?.msg || '创建拾光失败');
           }
@@ -1040,8 +1129,18 @@ const removeComplaintPasteListener = () => {
 
 // 处理拾光对话框关闭
 const handleComplaintDialogClose = () => {
-  removeComplaintPasteListener();
-  complaintDialogVisible.value = false;
+  // 如果提交成功，则不保存缓存
+  if (complaintSubmitSuccess.value) {
+    console.log('拾光提交成功，不保存缓存');
+    complaintSubmitSuccess.value = false; // 重置标志
+    return;
+  }
+  
+  // 如果表单有内容，则保存表单缓存
+  if (complaintForm.title || complaintForm.content) {
+    console.log('拾光表单有内容，保存缓存');
+    saveComplaintFormCache();
+  }
 };
 
 // 添加图片URL到图片列表
@@ -1124,8 +1223,39 @@ const handleAddTimelineEvent = () => {
   // 获取分类列表
   fetchTimelineCategories();
   
+  // 检查缓存中的isEdit标记
+  const cache = localStorage.getItem('timelineFormCache');
+  let cacheIsEdit = false;
+  
+  if (cache) {
+    try {
+      const data = JSON.parse(cache);
+      cacheIsEdit = data.isEdit || false;
+    } catch (error) {
+      console.error('解析时间轴表单缓存失败:', error);
+    }
+  }
+  
   isEditTimeline.value = false;
+  
+  // 只有当缓存不是来自编辑模式时，才尝试加载缓存
+  let hasCachedForm = false;
+  if (!cacheIsEdit) {
+    hasCachedForm = loadTimelineFormCache();
+  } else {
+    // 如果缓存来自编辑模式，清除它
+    console.log('时间轴缓存来自编辑模式，清除缓存');
+    clearTimelineFormCache();
+  }
+  
   timelineDialogVisible.value = true;
+  
+  // 如果有缓存，提示用户
+  if (hasCachedForm) {
+    nextTick(() => {
+      ElMessage.info('已加载上次未保存的时间轴表单数据');
+    });
+  }
 };
 
 // 处理编辑时间轴事件
@@ -1191,6 +1321,10 @@ const submitTimelineForm = async () => {
           response = await api.timeline.updateTimelineEvent(timelineForm.id, eventData);
           if (response && response.code === 200) {
             ElMessage.success('事件更新成功');
+            // 清除表单缓存
+            clearTimelineFormCache();
+            // 设置提交成功标志
+            timelineSubmitSuccess.value = true;
           } else {
             ElMessage.error(response?.msg || '更新事件失败');
           }
@@ -1199,6 +1333,10 @@ const submitTimelineForm = async () => {
           response = await api.timeline.createTimelineEvent(eventData);
           if (response && response.code === 200) {
             ElMessage.success('事件创建成功');
+            // 清除表单缓存
+            clearTimelineFormCache();
+            // 设置提交成功标志
+            timelineSubmitSuccess.value = true;
           } else {
             ElMessage.error(response?.msg || '创建事件失败');
           }
@@ -1809,6 +1947,171 @@ watch(() => articleDialogVisible.value, (isVisible) => {
 
 // 获取文章列表
 // ... existing code ...
+
+// 保存文章表单缓存
+const saveArticleFormCache = () => {
+  localStorage.setItem('articleFormCache', JSON.stringify({
+    id: articleForm.id,
+    title: articleForm.title,
+    summary: articleForm.summary,
+    content: articleForm.content,
+    category: articleForm.category,
+    tags: articleForm.tags,
+    thumbnail: articleForm.thumbnail,
+    status: articleForm.status,
+    isEdit: isEdit.value
+  }));
+};
+
+// 加载文章表单缓存
+const loadArticleFormCache = () => {
+  const cache = localStorage.getItem('articleFormCache');
+  if (cache) {
+    try {
+      const data = JSON.parse(cache);
+      Object.keys(data).forEach(key => {
+        if (key === 'isEdit') {
+          isEdit.value = data[key];
+        } else if (key in articleForm) {
+          articleForm[key] = data[key];
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('解析文章表单缓存失败:', error);
+    }
+  }
+  return false;
+};
+
+// 清除文章表单缓存
+const clearArticleFormCache = () => {
+  console.log('清除文章表单缓存');
+  localStorage.removeItem('articleFormCache');
+  // 确保缓存被清除
+  const cache = localStorage.getItem('articleFormCache');
+  if (cache) {
+    console.error('缓存清除失败，再次尝试清除');
+    localStorage.removeItem('articleFormCache');
+  } else {
+    console.log('缓存清除成功');
+  }
+};
+
+// 保存拾光表单缓存
+const saveComplaintFormCache = () => {
+  localStorage.setItem('complaintFormCache', JSON.stringify({
+    id: complaintForm.id,
+    title: complaintForm.title,
+    content: complaintForm.content,
+    mood: complaintForm.mood,
+    images: complaintForm.images,
+    status: complaintForm.status,
+    isEdit: isEditComplaint.value
+  }));
+};
+
+// 加载拾光表单缓存
+const loadComplaintFormCache = () => {
+  const cache = localStorage.getItem('complaintFormCache');
+  if (cache) {
+    try {
+      const data = JSON.parse(cache);
+      Object.keys(data).forEach(key => {
+        if (key === 'isEdit') {
+          isEditComplaint.value = data[key];
+        } else if (key in complaintForm) {
+          complaintForm[key] = data[key];
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('解析拾光表单缓存失败:', error);
+    }
+  }
+  return false;
+};
+
+// 清除拾光表单缓存
+const clearComplaintFormCache = () => {
+  console.log('清除拾光表单缓存');
+  localStorage.removeItem('complaintFormCache');
+  // 确保缓存被清除
+  const cache = localStorage.getItem('complaintFormCache');
+  if (cache) {
+    console.error('拾光缓存清除失败，再次尝试清除');
+    localStorage.removeItem('complaintFormCache');
+  } else {
+    console.log('拾光缓存清除成功');
+  }
+};
+
+// 保存时间轴表单缓存
+const saveTimelineFormCache = () => {
+  localStorage.setItem('timelineFormCache', JSON.stringify({
+    id: timelineForm.id,
+    title: timelineForm.title,
+    content: timelineForm.content,
+    date: timelineForm.date,
+    category: timelineForm.category,
+    icon: timelineForm.icon,
+    displayOrder: timelineForm.displayOrder,
+    isEdit: isEditTimeline.value
+  }));
+};
+
+// 加载时间轴表单缓存
+const loadTimelineFormCache = () => {
+  const cache = localStorage.getItem('timelineFormCache');
+  if (cache) {
+    try {
+      const data = JSON.parse(cache);
+      Object.keys(data).forEach(key => {
+        if (key === 'isEdit') {
+          isEditTimeline.value = data[key];
+        } else if (key in timelineForm) {
+          timelineForm[key] = data[key];
+        }
+      });
+      return true;
+    } catch (error) {
+      console.error('解析时间轴表单缓存失败:', error);
+    }
+  }
+  return false;
+};
+
+// 清除时间轴表单缓存
+const clearTimelineFormCache = () => {
+  console.log('清除时间轴表单缓存');
+  localStorage.removeItem('timelineFormCache');
+  // 确保缓存被清除
+  const cache = localStorage.getItem('timelineFormCache');
+  if (cache) {
+    console.error('时间轴缓存清除失败，再次尝试清除');
+    localStorage.removeItem('timelineFormCache');
+  } else {
+    console.log('时间轴缓存清除成功');
+  }
+};
+
+// 处理时间轴对话框关闭
+const handleTimelineDialogClose = () => {
+  // 如果提交成功，则不保存缓存
+  if (timelineSubmitSuccess.value) {
+    console.log('时间轴提交成功，不保存缓存');
+    timelineSubmitSuccess.value = false; // 重置标志
+    return;
+  }
+  
+  // 如果表单有内容，则保存表单缓存
+  if (timelineForm.title || timelineForm.content) {
+    console.log('时间轴表单有内容，保存缓存');
+    saveTimelineFormCache();
+  }
+};
+
+// 获取用户信息
 </script>
 
 <template>
@@ -2205,6 +2508,7 @@ watch(() => articleDialogVisible.value, (isVisible) => {
               :title="isEditTimeline ? '编辑事件' : '新增事件'"
               width="70%"
               :close-on-click-modal="false"
+              @closed="handleTimelineDialogClose"
             >
               <el-form
                 ref="timelineFormRef"
@@ -2955,4 +3259,4 @@ watch(() => articleDialogVisible.value, (isVisible) => {
   background-color: #f9f9f9;
   border-top: 1px dashed #dcdfe6;
   }
-</style> 
+</style>
