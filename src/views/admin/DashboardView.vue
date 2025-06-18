@@ -2811,6 +2811,52 @@ watch(() => articleDialogVisible.value, (isVisible) => {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
+/* 添加表格样式 */
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+  display: table;
+  overflow-x: auto;
+}
+
+.markdown-body :deep(table th) {
+  background-color: #f6f8fa;
+  font-weight: 600;
+  padding: 10px;
+  border: 1px solid #dfe2e5;
+  text-align: left;
+}
+
+.markdown-body :deep(table td) {
+  padding: 10px;
+  border: 1px solid #dfe2e5;
+}
+
+.markdown-body :deep(table tr:nth-child(2n)) {
+  background-color: #f8f8f8;
+}
+
+.markdown-body :deep(table tr:hover) {
+  background-color: #f0f7f4;
+}
+
+/* 优化列表样式 */
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 20px;
+  margin: 16px 0;
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: 8px;
+}
+
+.markdown-body :deep(li > ul),
+.markdown-body :deep(li > ol) {
+  margin: 8px 0;
+}
+
 /* 心情选择下拉菜单样式 */
 :deep(.mood-select-dropdown) {
   max-height: 300px !important;
