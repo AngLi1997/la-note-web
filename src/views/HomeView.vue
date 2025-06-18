@@ -95,8 +95,7 @@ const fetchArticles = async () => {
     const params = {
       pageNum: currentPage.value,
       pageSize: pageSize.value,
-      status: 1, // 只查已发布
-      includeContent: true // 添加参数，请求包含文章内容
+      status: 1 // 只查已发布
     }
     
     // 添加分类筛选

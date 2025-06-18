@@ -1854,7 +1854,7 @@ watch(() => articleDialogVisible.value, (isVisible) => {
               <el-table-column prop="title" label="标题" width="150" />
               <el-table-column prop="content" label="内容摘要" min-width="60%">
                 <template #default="scope">
-                  <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '' }}</div>
+                  <div class="summary-text">{{ scope.row.summary || scope.row.contentPreview || (scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '') }}</div>
                 </template>
               </el-table-column>
               <el-table-column
@@ -2064,9 +2064,9 @@ watch(() => articleDialogVisible.value, (isVisible) => {
               border
             >
               <el-table-column prop="title" label="标题" width="150" />
-              <el-table-column prop="content" label="内容摘要" min-width="50%">
+              <el-table-column prop="content" label="内容摘要" min-width="60%">
                 <template #default="scope">
-                  <div class="summary-text">{{ scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '' }}</div>
+                  <div class="summary-text">{{ scope.row.summary || scope.row.contentPreview || (scope.row.content ? scope.row.content.substring(0, 100) + (scope.row.content.length > 100 ? '...' : '') : '') }}</div>
                 </template>
               </el-table-column>
               <el-table-column prop="mood" label="心情" width="100">
