@@ -109,6 +109,7 @@ onMounted(async () => {
 <style scoped>
 .about-view {
   padding: 20px 0;
+  min-height: 100vh;
 }
 
 /* 主要内容区域 */
@@ -119,6 +120,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 30px;
+  min-height: calc(100vh - 160px); /* 减去header和footer的高度 */
 }
 
 .page-header {
