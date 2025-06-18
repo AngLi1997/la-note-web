@@ -218,7 +218,9 @@ const fetchCategoriesAndTags = async () => {
     // 获取标签
     const tagsResponse = await api.article.getTags();
     if (tagsResponse && tagsResponse.code === 200) {
-      tagOptions.value = tagsResponse.data || [];
+      // 处理新的标签数据格式，只提取标签名称
+      const tagData = tagsResponse.data || [];
+      tagOptions.value = tagData.map(tag => tag.name);
     }
   } catch (error) {
     console.error('获取分类或标签失败:', error);
@@ -544,11 +546,23 @@ const createCategory = (query) => {
 const createTag = (query) => {
   if (query && !tagOptions.value.includes(query)) {
     tagOptions.value.push(query);
-    if (!articleForm.tags.includes(query)) {
-      articleForm.tags.push(query);
-    }
     ElMessage.success(`已创建新标签: ${query}`);
   }
+};
+
+
+// 处理标签创建事件
+const handleTagCreate = (query) => {
+  // 使用原有的createTag方法添加新标签
+  createTag(query);
+  
+  // 在下一个事件循环中清空输入框
+  nextTick(() => {
+    const tagInputEl = document.querySelector('.el-select__input');
+    if (tagInputEl) {
+      tagInputEl.value = '';
+    }
+  });
 };
 
 // 获取文章状态文字
@@ -2006,8 +2020,10 @@ watch(() => articleDialogVisible.value, (isVisible) => {
                     clearable
                     filterable
                     allow-create
+                    :reserve-keyword="false"
                     default-first-option
                     @visible-change="val => !val && articleForm.tags.forEach(tag => createTag(tag))"
+                    @create="handleTagCreate"
                   >
                     <el-option 
                       v-for="tag in tagOptions" 
@@ -2938,5 +2954,5 @@ watch(() => articleDialogVisible.value, (isVisible) => {
   gap: 5px;
   background-color: #f9f9f9;
   border-top: 1px dashed #dcdfe6;
-}
+  }
 </style> 
