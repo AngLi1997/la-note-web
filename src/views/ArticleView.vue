@@ -330,6 +330,36 @@ onMounted(() => {
   transform: scale(1.01);
 }
 
+/* 添加表格样式 */
+:deep(.markdown-body table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+  display: table;
+  overflow-x: auto;
+}
+
+:deep(.markdown-body table th) {
+  background-color: #f6f8fa;
+  font-weight: 600;
+  padding: 10px;
+  border: 1px solid #dfe2e5;
+  text-align: left;
+}
+
+:deep(.markdown-body table td) {
+  padding: 10px;
+  border: 1px solid #dfe2e5;
+}
+
+:deep(.markdown-body table tr:nth-child(2n)) {
+  background-color: #f8f8f8;
+}
+
+:deep(.markdown-body table tr:hover) {
+  background-color: #f0f7f4;
+}
+
 :deep(.markdown-body pre) {
   position: relative;
   background-color: #f6f8fa;
