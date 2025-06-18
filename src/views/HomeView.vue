@@ -232,25 +232,21 @@ const fetchTags = async () => {
   try {
     const response = await api.article.getTags()
     if (response && response.code === 200) {
-      tags.value = response.data || []
-      
-      // 获取标签后，重新计算每个标签的数量
-      calculateTagCounts()
+      // 处理新的标签数据格式
+      const tagData = response.data || []
+      // 提取标签名称和数量
+      const tagNames = []
+      const counts = {}
+      tagData.forEach(tag => {
+        tagNames.push(tag.name)
+        counts[tag.name] = tag.count
+      })
+      tags.value = tagNames
+      tagCounts.value = counts
     }
   } catch (error) {
     console.error('获取标签列表失败', error)
   }
-}
-
-// 计算每个标签的文章数量
-const calculateTagCounts = () => {
-  // 这里理想情况是从后端获取每个标签的文章数量
-  // 暂时设置为1，后续可以修改API返回每个标签的文章数量
-  const counts = {}
-  tags.value.forEach(tag => {
-    counts[tag] = 1
-  })
-  tagCounts.value = counts
 }
 
 // 切换页码

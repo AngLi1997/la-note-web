@@ -380,7 +380,13 @@ const handlePublishArticle = async (row) => {
       
       // 更新文章状态
       const response = await api.article.updateArticle(row.id, {
-        ...row,
+        id: row.id,
+        title: row.title,
+        summary: row.summary,
+        content: row.content,
+        category: row.category,
+        tags: row.tags,
+        thumbnail: row.thumbnail,
         status: newStatus
       });
       
